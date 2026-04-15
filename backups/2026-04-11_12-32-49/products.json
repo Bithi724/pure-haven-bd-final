@@ -1,0 +1,82 @@
+[
+  {
+    "id": 1,
+    "name": "Radiant Glow Serum",
+    "price": 850,
+    "image": "https://images.unsplash.com/photo-1625772452859-1c03d5bf1137?q=80&w=1200&auto=format&fit=crop",
+    "category": "Skincare",
+    "subcategory": "serum",
+    "description": "Hydrating serum for daily skincare.",
+    "stock": 12
+  },
+  {
+    "id": 2,
+    "name": "Velvet Matte Lipstick",
+    "price": 650,
+    "image": "https://images.unsplash.com/photo-1586495777744-4413f21062fa?q=80&w=1200&auto=format&fit=crop",
+    "category": "Cosmetics",
+    "subcategory": "lipstick",
+    "description": "Smooth matte finish lipstick.",
+    "stock": 18
+  },
+  {
+    "id": 3,
+    "name": "Bloom Essence Perfume",
+    "price": 1450,
+    "image": "https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=1200&auto=format&fit=crop",
+    "category": "Perfume",
+    "subcategory": "perfume-women",
+    "description": "Long-lasting elegant fragrance.",
+    "stock": 7
+  },
+  {
+    "id": 4,
+    "name": "Natural Honey Jar",
+    "price": 780,
+    "image": "https://images.unsplash.com/photo-1587049352851-8d4e89133924?q=80&w=1200&auto=format&fit=crop",
+    "category": "Food",
+    "subcategory": "honey",
+    "description": "Pure natural honey.",
+    "stock": 13
+  },
+  {
+    "id": 1775681507400,
+    "name": "Neutrogena Hydro Boost",
+    "price": 1200,
+    "image": "/uploads/products/1775681507382-czy7fbeplz5.jpg",
+    "category": "Skincare",
+    "subcategory": "face-wash",
+    "description": "",
+    "stock": 10
+  },
+  {
+    "id": 1775731423880,
+    "name": "Neutrogena Hydro Boost",
+    "price": 200,
+    "image": "/uploads/products/1775731423812-v4300fk1268.jpg",
+    "category": "Skincare",
+    "subcategory": "face-wash",
+    "description": "",
+    "stock": 1
+  },
+  {
+    "id": 1775805393239,
+    "name": "herbal essence",
+    "price": 250,
+    "image": "/uploads/products/15349982-9ea0-4762-8adf-eeb4e8687969-1775805393222-wq3xeeeh.jpg",
+    "category": "Haircare",
+    "subcategory": "shampoo",
+    "description": "",
+    "stock": 3
+  },
+  {
+    "id": 1775806823707,
+    "name": "hydro boost",
+    "price": 1500,
+    "image": "/uploads/products/whatsapp-image-2026-04-07-at-02-29-56-2-1775806823693-yon26bt3.jpg",
+    "category": "Skincare",
+    "subcategory": "moisturizer",
+    "description": "",
+    "stock": 3
+  }
+]

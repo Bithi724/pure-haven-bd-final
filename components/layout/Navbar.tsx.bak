@@ -1,0 +1,292 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useCart } from "@/components/cart/CartContext";
+import { useWishlist } from "@/components/wishlist/WishlistContext";
+import { navItems } from "@/lib/nav-data";
+
+export default function Navbar() {
+  const { cartCount } = useCart();
+  const { wishlistCount } = useWishlist();
+
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openMobileIndex, setOpenMobileIndex] = useState<number | null>(null);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const syncAdminState = () => {
+      try {
+        setIsAdminLoggedIn(
+          localStorage.getItem("ph_admin_logged_in") === "true"
+        );
+      } catch {
+        setIsAdminLoggedIn(false);
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        syncAdminState();
+      }
+    };
+
+    syncAdminState();
+
+    window.addEventListener("storage", syncAdminState);
+    window.addEventListener("focus", syncAdminState);
+    window.addEventListener(
+      "ph-admin-auth-changed",
+      syncAdminState as EventListener
+    );
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.removeEventListener("storage", syncAdminState);
+      window.removeEventListener("focus", syncAdminState);
+      window.removeEventListener(
+        "ph-admin-auth-changed",
+        syncAdminState as EventListener
+      );
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, []);
+
+  return (
+    <header className="sticky top-0 z-50 border-b border-[#ead9d1] bg-white/90 backdrop-blur">
+      <div className="container-ph py-4">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex items-center justify-between gap-4">
+            <Link href="/" className="shrink-0">
+              <div className="text-2xl font-semibold tracking-[0.22em] text-[#2e221d] sm:text-3xl">
+                PURE
+              </div>
+              <div className="text-[11px] tracking-[0.42em] text-neutral-500 sm:text-xs">
+                HAVEN BD
+              </div>
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              className="rounded-full border border-[#ead9d1] px-4 py-2 text-sm font-medium hover:bg-[#f8f3ef] md:hidden"
+            >
+              {mobileMenuOpen ? "Close" : "Menu"}
+            </button>
+          </div>
+
+          <form action="/shop" method="GET" className="w-full xl:max-w-xl">
+            <input
+              type="text"
+              name="q"
+              placeholder="Search products..."
+              className="input-soft rounded-full px-5"
+            />
+          </form>
+
+          <div className="hidden items-center gap-3 lg:flex">
+            {isAdminLoggedIn ? (
+              <Link
+                href="/admin"
+                className="rounded-full border border-[#ead9d1] px-4 py-2 text-sm font-medium hover:bg-[#f8f3ef]"
+              >
+                Admin
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="rounded-full border border-[#ead9d1] px-4 py-2 text-sm font-medium hover:bg-[#f8f3ef]"
+              >
+                Login
+              </Link>
+            )}
+
+            <Link
+              href="/wishlist"
+              className="rounded-full border border-[#ead9d1] px-4 py-2 text-sm font-medium hover:bg-[#f8f3ef]"
+            >
+              Wishlist ({wishlistCount})
+            </Link>
+
+            <Link
+              href="/cart"
+              className="rounded-full bg-[#2e221d] px-4 py-2 text-sm font-medium text-white hover:bg-[#7a5244]"
+            >
+              Cart ({cartCount})
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <nav className="hidden border-t border-[#f1e4de] md:block">
+        <div className="container-ph flex flex-wrap items-center gap-7 py-3 text-sm font-medium">
+          {navItems.map((item) => (
+            <div key={item.label} className="group relative">
+              <Link
+                href={item.href}
+                className="inline-flex items-center gap-1 whitespace-nowrap text-[#2e221d] hover:text-[#7a5244]"
+              >
+                {item.label}
+                {item.sections?.length ? (
+                  <span className="text-xs text-neutral-500">▾</span>
+                ) : null}
+              </Link>
+
+              {item.sections?.length ? (
+                <div className="invisible absolute left-0 top-full z-50 mt-4 w-[820px] max-w-[calc(100vw-40px)] rounded-[24px] border border-[#ead9d1] bg-white p-6 opacity-0 shadow-xl transition-all duration-200 group-hover:visible group-hover:opacity-100">
+                  <div className="mb-4 border-b border-[#f1e4de] pb-3">
+                    <Link
+                      href={item.href}
+                      className="text-base font-semibold text-[#2e221d] hover:text-[#7a5244]"
+                    >
+                      Explore {item.label}
+                    </Link>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
+                    {item.sections.map((section) => (
+                      <div key={section.title}>
+                        <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#7a5244]">
+                          {section.title}
+                        </h3>
+
+                        <div className="space-y-2">
+                          {section.children.map((child) => (
+                            <Link
+                              key={child.label}
+                              href={child.href}
+                              className="block text-sm text-neutral-700 transition hover:translate-x-1 hover:text-[#7a5244]"
+                            >
+                              {child.label}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </nav>
+
+      {mobileMenuOpen ? (
+        <div className="border-t border-[#f1e4de] bg-white md:hidden">
+          <div className="container-ph py-4">
+            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {isAdminLoggedIn ? (
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-full border border-[#ead9d1] px-4 py-3 text-center text-sm font-medium hover:bg-[#f8f3ef]"
+                >
+                  Admin
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-full border border-[#ead9d1] px-4 py-3 text-center text-sm font-medium hover:bg-[#f8f3ef]"
+                >
+                  Login
+                </Link>
+              )}
+
+              <Link
+                href="/wishlist"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-full border border-[#ead9d1] px-4 py-3 text-center text-sm font-medium hover:bg-[#f8f3ef]"
+              >
+                Wishlist ({wishlistCount})
+              </Link>
+
+              <Link
+                href="/cart"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-full bg-[#2e221d] px-4 py-3 text-center text-sm font-medium text-white hover:bg-[#7a5244]"
+              >
+                Cart ({cartCount})
+              </Link>
+            </div>
+
+            <form
+              action="/shop"
+              method="GET"
+              className="mb-4"
+              onSubmit={() => setMobileMenuOpen(false)}
+            >
+              <input
+                type="text"
+                name="q"
+                placeholder="Search products..."
+                className="input-soft rounded-full px-5"
+              />
+            </form>
+
+            <div className="space-y-3">
+              {navItems.map((item, index) => {
+                const hasSections = !!item.sections?.length;
+                const isOpen = openMobileIndex === index;
+
+                return (
+                  <div
+                    key={item.label}
+                    className="rounded-[20px] border border-[#ead9d1] bg-white px-4 py-3"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <Link
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="font-medium text-[#2e221d] hover:text-[#7a5244]"
+                      >
+                        {item.label}
+                      </Link>
+
+                      {hasSections ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenMobileIndex(isOpen ? null : index)
+                          }
+                          className="rounded-full border border-[#ead9d1] px-3 py-1 text-sm hover:bg-[#f8f3ef]"
+                        >
+                          {isOpen ? "−" : "+"}
+                        </button>
+                      ) : null}
+                    </div>
+
+                    {hasSections && isOpen ? (
+                      <div className="mt-4 space-y-4 border-t border-[#f1e4de] pt-4">
+                        {item.sections!.map((section) => (
+                          <div key={section.title}>
+                            <h4 className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#7a5244]">
+                              {section.title}
+                            </h4>
+
+                            <div className="space-y-2">
+                              {section.children.map((child) => (
+                                <Link
+                                  key={child.label}
+                                  href={child.href}
+                                  onClick={() => setMobileMenuOpen(false)}
+                                  className="block text-sm text-neutral-700 hover:text-[#7a5244]"
+                                >
+                                  {child.label}
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </header>
+  );
+}
