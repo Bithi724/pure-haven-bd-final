@@ -15,15 +15,15 @@ type Product = {
   price: number;
   image: string;
   category: string;
-  subcategory?: string;
-  description?: string;
+  subcategory?: string | null;
+  description?: string | null;
   stock?: number;
 };
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-function normalizeSlug(value?: string) {
+function normalizeSlug(value?: string | null) {
   return (value || "").trim().toLowerCase().replace(/\s+/g, "-");
 }
 
@@ -61,7 +61,7 @@ export default async function HomePage() {
             normalizeSlug(product.category) === normalizeSlug(section.slug)
         )
         .sort((a, b) => Number(b.id) - Number(a.id))
-        .slice(0, 12);
+        .slice(0, 4);
 
       return {
         ...section,
