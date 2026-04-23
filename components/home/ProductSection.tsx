@@ -1,17 +1,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import ProductCard from "@/components/ui/ProductCard";
-
-type Product = {
-  id: number;
-  name: string;
-  price: number;
-  image: string;
-  category: string;
-  subcategory?: string | null;
-  description?: string | null;
-  stock?: number;
-};
+import type { Product } from "@/lib/getProducts";
 
 type ProductSectionProps = {
   title?: string;

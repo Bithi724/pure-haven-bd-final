@@ -7,18 +7,7 @@ import ProductSection from "@/components/home/ProductSection";
 import DealsBanner from "@/components/home/DealsBanner";
 import BrandsSection from "@/components/home/BrandsSection";
 import TrustSection from "@/components/home/TrustSection";
-import { getProducts } from "@/lib/getProducts";
-
-type Product = {
-  id: number;
-  name: string;
-  price: number;
-  image: string;
-  category: string;
-  subcategory?: string | null;
-  description?: string | null;
-  stock?: number;
-};
+import { getProducts, type Product } from "@/lib/getProducts";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -51,11 +40,11 @@ const homeCategoryConfig = [
 ];
 
 export default async function HomePage() {
-  const allProducts: Product[] = await getProducts();
+  const allProducts = await getProducts();
 
   const categorySections = homeCategoryConfig
     .map((section) => {
-      const products = allProducts
+      const products: Product[] = allProducts
         .filter(
           (product) =>
             normalizeSlug(product.category) === normalizeSlug(section.slug)
