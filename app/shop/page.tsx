@@ -1,20 +1,8 @@
-import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ProductCard from "@/components/ui/ProductCard";
 import { getProducts } from "@/lib/getProducts";
-
-type ShopPageProps = {
-  searchParams: Promise<{
-    category?: string;
-    subcategory?: string;
-    q?: string;
-    sort?: string;
-    min?: string;
-    max?: string;
-  }>;
-};
 
 type Product = {
   id: number;
@@ -27,114 +15,87 @@ type Product = {
   stock?: number;
 };
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+type ShopPageProps = {
+  searchParams?: Promise<{
+    category?: string;
+    subcategory?: string;
+    sort?: string;
+    q?: string;
+  }>;
+};
 
 function normalizeSlug(value?: string) {
   return (value || "").trim().toLowerCase().replace(/\s+/g, "-");
 }
 
 function formatLabel(value?: string) {
-  return (value || "")
+  if (!value) return "";
+  return value
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 }
 
-const categoryLinks = [
-  { label: "All", href: "/shop", slug: "" },
-  { label: "Cosmetics", href: "/shop?category=cosmetics", slug: "cosmetics" },
-  { label: "Haircare", href: "/shop?category=haircare", slug: "haircare" },
-  { label: "Skincare", href: "/shop?category=skincare", slug: "skincare" },
-  { label: "Perfume", href: "/shop?category=perfume", slug: "perfume" },
-  { label: "Food", href: "/shop?category=food", slug: "food" },
-  {
-    label: "Men’s Products",
-    href: "/shop?category=mens-products",
-    slug: "mens-products",
-  },
+const categoryOptions = [
+  { label: "All Categories", value: "" },
+  { label: "Cosmetics", value: "cosmetics" },
+  { label: "Haircare", value: "haircare" },
+  { label: "Skincare", value: "skincare" },
+  { label: "Perfume", value: "perfume" },
+  { label: "Mens Products", value: "mens-products" },
+  { label: "Food", value: "food" },
 ];
 
 export default async function ShopPage({ searchParams }: ShopPageProps) {
-  const params = await searchParams;
-  const selectedCategory = params.category;
-  const selectedSubcategory = params.subcategory;
-  const query = (params.q || "").trim().toLowerCase();
-  const sort = params.sort || "latest";
-  const minPrice = params.min ? Number(params.min) : undefined;
-  const maxPrice = params.max ? Number(params.max) : undefined;
+  const params = (await searchParams) || {};
+
+  const category = params.category || "";
+  const subcategory = params.subcategory || "";
+  const sort = params.sort || "";
+  const query = (params.q || "").trim();
 
   const allProducts: Product[] = await getProducts();
 
-  let filteredProducts = allProducts.filter((product) => {
-    const productCategory = normalizeSlug(product.category);
-    const productSubcategory = normalizeSlug(product.subcategory);
-
-    const categoryMatch = selectedCategory
-      ? productCategory === normalizeSlug(selectedCategory)
-      : true;
-
-    const subcategoryMatch = selectedSubcategory
-      ? productSubcategory === normalizeSlug(selectedSubcategory)
-      : true;
-
-    const searchMatch = query
-      ? [
-          product.name,
-          product.category,
-          product.subcategory,
-          product.description,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(query)
-      : true;
-
-    const minMatch =
-      typeof minPrice === "number" && !Number.isNaN(minPrice)
-        ? product.price >= minPrice
+  const filteredProducts = allProducts
+    .filter((product) => {
+      const matchesCategory = category
+        ? normalizeSlug(product.category) === normalizeSlug(category)
         : true;
 
-    const maxMatch =
-      typeof maxPrice === "number" && !Number.isNaN(maxPrice)
-        ? product.price <= maxPrice
+      const matchesSubcategory = subcategory
+        ? normalizeSlug(product.subcategory) === normalizeSlug(subcategory)
         : true;
 
-    return (
-      categoryMatch &&
-      subcategoryMatch &&
-      searchMatch &&
-      minMatch &&
-      maxMatch
-    );
-  });
+      const matchesQuery = query
+        ? [product.name, product.category, product.subcategory, product.description]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase()
+            .includes(query.toLowerCase())
+        : true;
 
-  filteredProducts = [...filteredProducts].sort((a, b) => {
-    switch (sort) {
-      case "price-low":
-        return a.price - b.price;
-      case "price-high":
-        return b.price - a.price;
-      case "name-az":
-        return a.name.localeCompare(b.name);
-      case "name-za":
-        return b.name.localeCompare(a.name);
-      case "latest":
-      default:
-        return Number(b.id) - Number(a.id);
-    }
-  });
+      return matchesCategory && matchesSubcategory && matchesQuery;
+    })
+    .sort((a, b) => {
+      if (sort === "price-asc") return Number(a.price) - Number(b.price);
+      if (sort === "price-desc") return Number(b.price) - Number(a.price);
+      if (sort === "latest") return Number(b.id) - Number(a.id);
+      return Number(b.id) - Number(a.id);
+    });
 
-  const headingTitle = query
-    ? `Search: ${query}`
-    : selectedSubcategory
-    ? formatLabel(selectedSubcategory)
-    : selectedCategory
-    ? formatLabel(selectedCategory)
-    : "Shop";
+  const categoryProducts = category
+    ? allProducts.filter(
+        (product) => normalizeSlug(product.category) === normalizeSlug(category)
+      )
+    : allProducts;
 
-  const activeCategorySlug = normalizeSlug(selectedCategory);
+  const subcategoryOptions = Array.from(
+    new Set(
+      categoryProducts
+        .map((product) => normalizeSlug(product.subcategory))
+        .filter(Boolean)
+    )
+  );
 
   return (
     <main>
@@ -142,112 +103,111 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
       <Navbar />
 
       <section className="container-ph section-gap">
-        <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold text-[#2e221d] md:text-4xl">
-              {headingTitle}
-            </h1>
-            <div className="mt-2 text-sm text-neutral-500">
-              <Link href="/" className="hover:text-[#7a5244]">
-                Home
-              </Link>
-              <span className="mx-2">/</span>
-              <span>{headingTitle}</span>
-            </div>
-          </div>
-
-          <p className="text-sm text-neutral-600">
-            {filteredProducts.length} product
-            {filteredProducts.length === 1 ? "" : "s"} found
+        <div className="mb-6">
+          <p className="text-sm uppercase tracking-[0.18em] text-[#7a5244]">
+            Shop
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold text-[#2e221d] sm:text-4xl">
+            Explore Products
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm text-neutral-600 sm:text-base">
+            Browse products by category, subcategory, and price.
           </p>
         </div>
 
-        <div className="mb-5 -mx-4 overflow-x-auto px-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex min-w-max gap-3">
-            {categoryLinks.map((item) => {
-              const isActive =
-                item.slug === ""
-                  ? !selectedCategory
-                  : activeCategorySlug === item.slug;
+        <div className="mb-6 rounded-[24px] border border-[#ead9d1] bg-white p-4 shadow-sm">
+          <form method="GET" action="/shop" className="grid gap-3 lg:grid-cols-[1.2fr_1fr_1fr_auto]">
+            <input
+              type="text"
+              name="q"
+              defaultValue={query}
+              placeholder="Search products..."
+              className="w-full rounded-2xl border border-[#ead9d1] bg-[#fffdfb] px-4 py-3 text-sm outline-none"
+            />
 
-              return (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
-                    isActive
-                      ? "border-[#2e221d] bg-[#2e221d] text-white"
-                      : "border-[#ead9d1] bg-white text-[#2e221d] hover:bg-[#f8f3ef]"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
+            <select
+              name="category"
+              defaultValue={category}
+              className="w-full rounded-2xl border border-[#ead9d1] bg-[#fffdfb] px-4 py-3 text-sm outline-none"
+            >
+              {categoryOptions.map((option) => (
+                <option key={option.value || "all"} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              name="subcategory"
+              defaultValue={subcategory}
+              className="w-full rounded-2xl border border-[#ead9d1] bg-[#fffdfb] px-4 py-3 text-sm outline-none"
+            >
+              <option value="">All Subcategories</option>
+              {subcategoryOptions.map((option) => (
+                <option key={option} value={option}>
+                  {formatLabel(option)}
+                </option>
+              ))}
+            </select>
+
+            <select
+              name="sort"
+              defaultValue={sort}
+              className="w-full rounded-2xl border border-[#ead9d1] bg-[#fffdfb] px-4 py-3 text-sm outline-none"
+            >
+              <option value="">Latest</option>
+              <option value="latest">Latest</option>
+              <option value="price-asc">Price Low → High</option>
+              <option value="price-desc">Price High → Low</option>
+            </select>
+
+            <div className="flex gap-3 lg:col-span-4">
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-full bg-[#2e221d] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#7a5244]"
+              >
+                Apply Filters
+              </button>
+
+              <a
+                href="/shop"
+                className="inline-flex items-center justify-center rounded-full border border-[#ead9d1] px-5 py-3 text-sm font-medium text-[#2e221d] transition hover:bg-[#f8f3ef]"
+              >
+                Clear Filters
+              </a>
+            </div>
+          </form>
         </div>
 
-        <form
-          action="/shop"
-          method="GET"
-          className="mb-6 grid gap-3 rounded-[24px] border border-[#ead9d1] bg-white p-4 md:grid-cols-5"
-        >
-          <input type="hidden" name="category" value={selectedCategory || ""} />
-          <input
-            type="hidden"
-            name="subcategory"
-            value={selectedSubcategory || ""}
-          />
+        {(category || subcategory || query) && (
+          <div className="mb-5 flex flex-wrap gap-2">
+            {category ? (
+              <span className="rounded-full bg-[#f8f3ef] px-3 py-1 text-xs font-medium text-[#2e221d]">
+                Category: {formatLabel(category)}
+              </span>
+            ) : null}
 
-          <input
-            type="text"
-            name="q"
-            defaultValue={params.q || ""}
-            placeholder="Search products..."
-            className="rounded-2xl border border-[#ead9d1] px-4 py-3 outline-none"
-          />
+            {subcategory ? (
+              <span className="rounded-full bg-[#f8f3ef] px-3 py-1 text-xs font-medium text-[#2e221d]">
+                Subcategory: {formatLabel(subcategory)}
+              </span>
+            ) : null}
 
-          <input
-            type="number"
-            name="min"
-            defaultValue={params.min || ""}
-            placeholder="Min price"
-            className="rounded-2xl border border-[#ead9d1] px-4 py-3 outline-none"
-          />
-
-          <input
-            type="number"
-            name="max"
-            defaultValue={params.max || ""}
-            placeholder="Max price"
-            className="rounded-2xl border border-[#ead9d1] px-4 py-3 outline-none"
-          />
-
-          <select
-            name="sort"
-            defaultValue={sort}
-            className="rounded-2xl border border-[#ead9d1] px-4 py-3 outline-none"
-          >
-            <option value="latest">Default Sorting</option>
-            <option value="price-low">Price: Low to High</option>
-            <option value="price-high">Price: High to Low</option>
-            <option value="name-az">Name: A to Z</option>
-            <option value="name-za">Name: Z to A</option>
-          </select>
-
-          <button
-            type="submit"
-            className="rounded-2xl bg-[#2e221d] px-4 py-3 text-white hover:bg-[#7a5244]"
-          >
-            Apply
-          </button>
-        </form>
+            {query ? (
+              <span className="rounded-full bg-[#f8f3ef] px-3 py-1 text-xs font-medium text-[#2e221d]">
+                Search: {query}
+              </span>
+            ) : null}
+          </div>
+        )}
 
         {filteredProducts.length === 0 ? (
-          <div className="rounded-[24px] border border-[#ead9d1] bg-white p-10 text-center">
-            <h2 className="text-2xl font-semibold">No products found</h2>
-            <p className="mt-3 text-neutral-600">
-              Try another keyword, category, subcategory, or price range.
+          <div className="rounded-[24px] border border-[#ead9d1] bg-white p-8 text-center shadow-sm">
+            <h2 className="text-xl font-semibold text-[#2e221d]">
+              No products found
+            </h2>
+            <p className="mt-2 text-sm text-neutral-600">
+              Try changing your category, subcategory, search, or sort option.
             </p>
           </div>
         ) : (

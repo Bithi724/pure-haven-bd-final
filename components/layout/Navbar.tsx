@@ -259,7 +259,7 @@ export default function Navbar() {
       ) : null}
 
       <nav className="hidden border-t border-[#f1e4de] lg:block">
-        <div className="container-ph flex flex-wrap items-center gap-7 py-3 text-sm font-medium">
+        <div className="container-ph flex flex-wrap items-center gap-5 py-3 text-sm font-medium">
           {navItems.map((item, index) => {
             const hasSections = !!item.sections?.length;
             const isOpen = openDesktopIndex === index;

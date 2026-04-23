@@ -1,131 +1,40 @@
-import { promises as fs } from "fs";
-import path from "path";
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-const ordersFilePath = path.join(process.cwd(), "data", "orders.json");
-const productsFilePath = path.join(process.cwd(), "data", "products.json");
-
-type Product = {
-  id: number;
-  name: string;
-  price: number;
-  image: string;
-  category: string;
-  subcategory?: string;
-  description?: string;
-  stock?: number;
-};
-
-type OrderItem = {
-  id: number | string;
+type OrderItemInput = {
+  id?: number | string;
   productId?: number | string;
-  name: string;
-  price: number;
-  quantity: number;
+  name?: string;
+  price?: number | string;
   image?: string;
   category?: string;
+  quantity?: number | string;
 };
 
-type CustomerInfo = {
-  name: string;
-  phone: string;
-  email?: string;
-  address: string;
-  city?: string;
-  area?: string;
-  notes?: string;
+type OrderBody = {
+  id?: string;
+  customer?: {
+    name?: string;
+    phone?: string;
+    city?: string;
+    address?: string;
+  };
+  items?: OrderItemInput[];
+  subtotal?: number | string;
+  deliveryFee?: number | string;
+  total?: number | string;
+  status?: string;
+  paymentMethod?: string;
+  paymentStatus?: string;
+  paymentDetails?: {
+    provider?: string;
+    senderNumber?: string;
+    trxId?: string;
+  } | null;
 };
 
-type OrderStatus =
-  | "pending"
-  | "confirmed"
-  | "processing"
-  | "shipped"
-  | "delivered"
-  | "cancelled"
-  | "completed";
-
-type Order = {
-  id: string;
-  orderId: string;
-  customer: CustomerInfo;
-  items: OrderItem[];
-  subtotal: number;
-  deliveryFee: number;
-  total: number;
-  status: OrderStatus | string;
-  paymentMethod: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
-async function ensureJsonFile(filePath: string, fallbackContent: string) {
-  const dirPath = path.dirname(filePath);
-  await fs.mkdir(dirPath, { recursive: true });
-
-  try {
-    await fs.access(filePath);
-  } catch {
-    await fs.writeFile(filePath, fallbackContent, "utf8");
-  }
-}
-
-async function ensureOrdersFile() {
-  await ensureJsonFile(ordersFilePath, "[]");
-}
-
-async function ensureProductsFile() {
-  await ensureJsonFile(productsFilePath, "[]");
-}
-
-async function readOrders(): Promise<Order[]> {
-  await ensureOrdersFile();
-
-  const fileContent = await fs.readFile(ordersFilePath, "utf8");
-  if (!fileContent.trim()) return [];
-
-  const parsed = JSON.parse(fileContent);
-  return Array.isArray(parsed) ? parsed : [];
-}
-
-async function writeOrders(orders: Order[]) {
-  await ensureOrdersFile();
-  await fs.writeFile(ordersFilePath, JSON.stringify(orders, null, 2), "utf8");
-}
-
-async function readProducts(): Promise<Product[]> {
-  await ensureProductsFile();
-
-  const fileContent = await fs.readFile(productsFilePath, "utf8");
-  if (!fileContent.trim()) return [];
-
-  const parsed = JSON.parse(fileContent);
-  return Array.isArray(parsed) ? parsed : [];
-}
-
-async function writeProducts(products: Product[]) {
-  await ensureProductsFile();
-  await fs.writeFile(productsFilePath, JSON.stringify(products, null, 2), "utf8");
-}
-
-function sortOrders(orders: Order[]) {
-  return [...orders].sort((a, b) => {
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
-}
-
-function generateOrderId() {
-  const now = new Date();
-  const yy = now.getFullYear().toString().slice(-2);
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const dd = String(now.getDate()).padStart(2, "0");
-  const timestampTail = Date.now().toString().slice(-6);
-  const randomTail = Math.floor(1000 + Math.random() * 9000);
-
-  return `PHB-${yy}${mm}${dd}-${timestampTail}-${randomTail}`;
+function normalizeString(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function normalizeNumber(value: unknown, fallback = 0) {
@@ -133,382 +42,338 @@ function normalizeNumber(value: unknown, fallback = 0) {
   return Number.isFinite(num) ? num : fallback;
 }
 
-function normalizeString(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
+function sanitizePhone(value: string) {
+  return String(value || "").replace(/\D/g, "");
 }
 
-function normalizeItems(rawItems: unknown): OrderItem[] {
-  if (!Array.isArray(rawItems)) return [];
-
-  return rawItems
-    .map((item: any) => {
-      const quantity = normalizeNumber(item?.quantity, 0);
-      const price = normalizeNumber(item?.price, 0);
-
-      return {
-        id: item?.id ?? item?.productId ?? `${Date.now()}-${Math.random()}`,
-        productId: item?.productId ?? item?.id,
-        name: normalizeString(item?.name),
-        price,
-        quantity,
-        image: normalizeString(item?.image) || undefined,
-        category: normalizeString(item?.category) || undefined,
-      };
-    })
-    .filter((item) => item.name && item.quantity > 0);
+function generateOrderId() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const random = Math.floor(1000 + Math.random() * 9000);
+  return `PH-${yyyy}${mm}${dd}-${random}`;
 }
 
-function normalizeCustomer(body: any): CustomerInfo {
-  const customer =
-    body?.customer && typeof body.customer === "object" ? body.customer : {};
-  const shippingAddress =
-    body?.shippingAddress && typeof body.shippingAddress === "object"
-      ? body.shippingAddress
-      : {};
-
+function mapOrder(order: {
+  id: string;
+  orderId: string;
+  customerName: string;
+  customerPhone: string;
+  customerCity: string;
+  customerAddress: string;
+  subtotal: number;
+  deliveryFee: number;
+  total: number;
+  status: string;
+  paymentMethod: string;
+  paymentStatus: string;
+  paymentProvider: string | null;
+  paymentSenderNumber: string | null;
+  paymentTrxId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  items: Array<{
+    id: number;
+    productId: number | null;
+    name: string;
+    price: number;
+    image: string;
+    category: string;
+    quantity: number;
+  }>;
+}) {
   return {
-    name: normalizeString(customer.name ?? body?.name),
-    phone: normalizeString(customer.phone ?? body?.phone),
-    email: normalizeString(customer.email ?? body?.email) || undefined,
-    address: normalizeString(
-      customer.address ?? shippingAddress.address ?? body?.address
-    ),
-    city:
-      normalizeString(customer.city ?? shippingAddress.city ?? body?.city) ||
-      undefined,
-    area:
-      normalizeString(customer.area ?? shippingAddress.area ?? body?.area) ||
-      undefined,
-    notes:
-      normalizeString(customer.notes ?? shippingAddress.notes ?? body?.notes) ||
-      undefined,
+    id: order.id,
+    orderId: order.orderId,
+    customer: {
+      name: order.customerName,
+      phone: order.customerPhone,
+      city: order.customerCity,
+      address: order.customerAddress,
+    },
+    items: order.items,
+    subtotal: order.subtotal,
+    deliveryFee: order.deliveryFee,
+    total: order.total,
+    status: order.status,
+    paymentMethod: order.paymentMethod,
+    paymentStatus: order.paymentStatus,
+    paymentDetails:
+      order.paymentProvider ||
+      order.paymentSenderNumber ||
+      order.paymentTrxId
+        ? {
+            provider: order.paymentProvider || undefined,
+            senderNumber: order.paymentSenderNumber || undefined,
+            trxId: order.paymentTrxId || undefined,
+          }
+        : null,
+    createdAt: order.createdAt.toISOString(),
+    updatedAt: order.updatedAt.toISOString(),
   };
 }
 
-function calculateSubtotal(items: OrderItem[]) {
-  return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-}
-
-function buildOrderFromBody(body: any): Order {
-  const items = normalizeItems(body?.items);
-  const customer = normalizeCustomer(body);
-
-  const subtotalFromItems = calculateSubtotal(items);
-  const subtotal = normalizeNumber(body?.subtotal, subtotalFromItems);
-  const deliveryFee = normalizeNumber(body?.deliveryFee, 0);
-  const total = normalizeNumber(body?.total, subtotal + deliveryFee);
-
-  const now = new Date().toISOString();
-  const generatedId = generateOrderId();
-
-  return {
-    id: generatedId,
-    orderId: generatedId,
-    customer,
-    items,
-    subtotal,
-    deliveryFee,
-    total,
-    status: normalizeString(body?.status) || "pending",
-    paymentMethod: normalizeString(body?.paymentMethod) || "Cash on Delivery",
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-function findOrderIndex(orders: Order[], idOrOrderId: string) {
-  return orders.findIndex(
-    (order) => order.id === idOrOrderId || order.orderId === idOrOrderId
-  );
-}
-
-function getOrderItemProductId(item: OrderItem) {
-  const raw = item.productId ?? item.id;
-  const numericId = Number(raw);
-
-  return Number.isFinite(numericId) ? numericId : null;
-}
-
-function verifyAndApplyStock(
-  products: Product[],
-  orderItems: OrderItem[]
-): { ok: true; updatedProducts: Product[] } | { ok: false; message: string } {
-  const updatedProducts = [...products];
-
-  for (const orderItem of orderItems) {
-    const productId = getOrderItemProductId(orderItem);
-
-    if (productId === null) {
-      return {
-        ok: false,
-        message: `Invalid product id for "${orderItem.name}".`,
-      };
-    }
-
-    const productIndex = updatedProducts.findIndex((p) => p.id === productId);
-
-    if (productIndex === -1) {
-      return {
-        ok: false,
-        message: `Product "${orderItem.name}" is no longer available.`,
-      };
-    }
-
-    const product = updatedProducts[productIndex];
-
-    if (typeof product.stock === "number") {
-      if (product.stock <= 0) {
-        return {
-          ok: false,
-          message: `"${product.name}" is out of stock.`,
-        };
-      }
-
-      if (orderItem.quantity > product.stock) {
-        return {
-          ok: false,
-          message: `"${product.name}" only has ${product.stock} item(s) left in stock.`,
-        };
-      }
-
-      updatedProducts[productIndex] = {
-        ...product,
-        stock: product.stock - orderItem.quantity,
-      };
-    }
-  }
-
-  return { ok: true, updatedProducts };
-}
-
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const orders = await readOrders();
-    const { searchParams } = new URL(request.url);
+    const track = req.nextUrl.searchParams.get("track");
+    const orderId = req.nextUrl.searchParams.get("orderId");
+    const phone = req.nextUrl.searchParams.get("phone");
 
-    const id = searchParams.get("id") || searchParams.get("orderId");
-
-    if (id) {
-      const order = orders.find(
-        (item) => item.id === id || item.orderId === id
-      );
-
-      if (!order) {
+    if (track === "1") {
+      if (!orderId || !phone) {
         return NextResponse.json(
-          { success: false, message: "Order not found" },
-          { status: 404 }
+          {
+            success: false,
+            message: "Order ID and phone number are required.",
+          },
+          { status: 400 }
         );
       }
 
-      return NextResponse.json({ success: true, order }, { status: 200 });
-    }
-
-    return NextResponse.json(
-      { success: true, orders: sortOrders(orders) },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("GET /api/orders error:", error);
-
-    return NextResponse.json(
-      { success: false, message: "Failed to fetch orders" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const newOrder = buildOrderFromBody(body);
-
-    if (
-      !newOrder.customer.name ||
-      !newOrder.customer.phone ||
-      !newOrder.customer.address
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Customer name, phone, and address are required",
+      const matchedOrder = await prisma.order.findFirst({
+        where: {
+          orderId: orderId.trim(),
+          customerPhone: {
+            equals: sanitizePhone(phone),
+          },
         },
-        { status: 400 }
-      );
-    }
+        include: { items: true },
+      });
 
-    if (!newOrder.items.length) {
-      return NextResponse.json(
-        { success: false, message: "At least one order item is required" },
-        { status: 400 }
-      );
-    }
+      if (!matchedOrder) {
+        const fallbackOrder = await prisma.order.findFirst({
+          where: {
+            orderId: orderId.trim(),
+          },
+          include: { items: true },
+        });
 
-    const products = await readProducts();
-    const stockResult = verifyAndApplyStock(products, newOrder.items);
+        const samePhone =
+          fallbackOrder &&
+          sanitizePhone(fallbackOrder.customerPhone) === sanitizePhone(phone);
 
-    if (!stockResult.ok) {
-      return NextResponse.json(
-        { success: false, message: stockResult.message },
-        { status: 400 }
-      );
-    }
+        if (!samePhone) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: "No matching order found.",
+            },
+            { status: 404 }
+          );
+        }
 
-    const orders = await readOrders();
-    orders.push(newOrder);
+        return NextResponse.json({
+          success: true,
+          order: mapOrder(fallbackOrder),
+        });
+      }
 
-    await writeProducts(stockResult.updatedProducts);
-    await writeOrders(orders);
-
-    return NextResponse.json(
-      {
+      return NextResponse.json({
         success: true,
-        message: "Order created successfully",
-        order: newOrder,
-      },
-      { status: 201 }
-    );
+        order: mapOrder(matchedOrder),
+      });
+    }
+
+    const orders = await prisma.order.findMany({
+      include: { items: true },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json({
+      success: true,
+      orders: orders.map(mapOrder),
+    });
   } catch (error) {
-    console.error("POST /api/orders error:", error);
+    console.error("GET /api/orders failed:", error);
 
     return NextResponse.json(
-      { success: false, message: "Failed to create order" },
+      { success: false, message: "Failed to fetch orders." },
       { status: 500 }
     );
   }
 }
 
-export async function PUT(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
-    const id = normalizeString(body?.id ?? body?.orderId);
+    const body = (await req.json()) as OrderBody;
 
-    if (!id) {
+    const customerName = normalizeString(body.customer?.name);
+    const customerPhone = normalizeString(body.customer?.phone);
+    const customerCity = normalizeString(body.customer?.city);
+    const customerAddress = normalizeString(body.customer?.address);
+
+    const items = Array.isArray(body.items) ? body.items : [];
+
+    if (!customerName || !customerPhone || !customerAddress) {
       return NextResponse.json(
-        { success: false, message: "Order id is required" },
+        { success: false, message: "Customer information is incomplete." },
         { status: 400 }
       );
     }
 
-    const orders = await readOrders();
-    const index = findOrderIndex(orders, id);
-
-    if (index === -1) {
+    if (items.length === 0) {
       return NextResponse.json(
-        { success: false, message: "Order not found" },
-        { status: 404 }
+        { success: false, message: "Order items are required." },
+        { status: 400 }
       );
     }
 
-    const existingOrder = orders[index];
+    const orderId = generateOrderId();
 
-    const nextStatus = normalizeString(body?.status) || existingOrder.status;
-
-    const nextCustomer =
-      body?.customer && typeof body.customer === "object"
-        ? {
-            ...existingOrder.customer,
-            ...body.customer,
-          }
-        : existingOrder.customer;
-
-    const nextItems = Array.isArray(body?.items)
-      ? normalizeItems(body.items)
-      : existingOrder.items;
-
-    const nextSubtotal =
-      body?.subtotal !== undefined
-        ? normalizeNumber(body.subtotal, existingOrder.subtotal)
-        : Array.isArray(body?.items)
-        ? calculateSubtotal(nextItems)
-        : existingOrder.subtotal;
-
-    const nextDeliveryFee =
-      body?.deliveryFee !== undefined
-        ? normalizeNumber(body.deliveryFee, existingOrder.deliveryFee)
-        : existingOrder.deliveryFee;
-
-    const nextTotal =
-      body?.total !== undefined
-        ? normalizeNumber(body.total, nextSubtotal + nextDeliveryFee)
-        : nextSubtotal + nextDeliveryFee;
-
-    const updatedOrder: Order = {
-      ...existingOrder,
-      customer: nextCustomer,
-      items: nextItems,
-      subtotal: nextSubtotal,
-      deliveryFee: nextDeliveryFee,
-      total: nextTotal,
-      status: nextStatus,
-      paymentMethod:
-        normalizeString(body?.paymentMethod) || existingOrder.paymentMethod,
-      updatedAt: new Date().toISOString(),
-    };
-
-    orders[index] = updatedOrder;
-    await writeOrders(orders);
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Order updated successfully",
-        order: updatedOrder,
+    const order = await prisma.order.create({
+      data: {
+        orderId,
+        customerName,
+        customerPhone,
+        customerCity,
+        customerAddress,
+        subtotal: normalizeNumber(body.subtotal, 0),
+        deliveryFee: normalizeNumber(body.deliveryFee, 0),
+        total: normalizeNumber(body.total, 0),
+        status: normalizeString(body.status) || "pending",
+        paymentMethod: normalizeString(body.paymentMethod) || "Cash on Delivery",
+        paymentStatus: normalizeString(body.paymentStatus) || "pending",
+        paymentProvider: normalizeString(body.paymentDetails?.provider) || null,
+        paymentSenderNumber:
+          normalizeString(body.paymentDetails?.senderNumber) || null,
+        paymentTrxId: normalizeString(body.paymentDetails?.trxId) || null,
+        items: {
+          create: items.map((item) => ({
+            productId:
+              item.productId !== undefined && item.productId !== null
+                ? Number(item.productId)
+                : null,
+            name: normalizeString(item.name),
+            price: normalizeNumber(item.price, 0),
+            image:
+              normalizeString(item.image) || "/uploads/placeholder-product.png",
+            category: normalizeString(item.category) || "Uncategorized",
+            quantity: Math.max(1, Math.floor(normalizeNumber(item.quantity, 1))),
+          })),
+        },
       },
-      { status: 200 }
-    );
+      include: { items: true },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Order created successfully.",
+      order: mapOrder(order),
+    });
   } catch (error) {
-    console.error("PUT /api/orders error:", error);
+    console.error("POST /api/orders failed:", error);
 
     return NextResponse.json(
-      { success: false, message: "Failed to update order" },
+      { success: false, message: "Order creation failed." },
       { status: 500 }
     );
   }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function PUT(req: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    let id = searchParams.get("id") || searchParams.get("orderId") || "";
+    const body = (await req.json()) as OrderBody;
 
-    if (!id) {
-      const body = await request.json().catch(() => null);
-      id = normalizeString(body?.id ?? body?.orderId);
-    }
+    const id = normalizeString(body.id);
 
     if (!id) {
       return NextResponse.json(
-        { success: false, message: "Order id is required" },
+        { success: false, message: "Order ID is required." },
         { status: 400 }
       );
     }
 
-    const orders = await readOrders();
-    const index = findOrderIndex(orders, id);
+    const existing = await prisma.order.findFirst({
+      where: {
+        OR: [{ id }, { orderId: id }],
+      },
+      include: { items: true },
+    });
 
-    if (index === -1) {
+    if (!existing) {
       return NextResponse.json(
-        { success: false, message: "Order not found" },
+        { success: false, message: "Order not found." },
         { status: 404 }
       );
     }
 
-    const [deletedOrder] = orders.splice(index, 1);
-    await writeOrders(orders);
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Order deleted successfully",
-        order: deletedOrder,
+    const updated = await prisma.order.update({
+      where: { id: existing.id },
+      data: {
+        status: normalizeString(body.status) || existing.status,
+        paymentMethod:
+          normalizeString(body.paymentMethod) || existing.paymentMethod,
+        paymentStatus:
+          normalizeString(body.paymentStatus) || existing.paymentStatus,
+        paymentProvider:
+          body.paymentDetails !== undefined
+            ? normalizeString(body.paymentDetails?.provider) || null
+            : existing.paymentProvider,
+        paymentSenderNumber:
+          body.paymentDetails !== undefined
+            ? normalizeString(body.paymentDetails?.senderNumber) || null
+            : existing.paymentSenderNumber,
+        paymentTrxId:
+          body.paymentDetails !== undefined
+            ? normalizeString(body.paymentDetails?.trxId) || null
+            : existing.paymentTrxId,
       },
-      { status: 200 }
-    );
+      include: { items: true },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Order updated successfully.",
+      order: mapOrder(updated),
+    });
   } catch (error) {
-    console.error("DELETE /api/orders error:", error);
+    console.error("PUT /api/orders failed:", error);
 
     return NextResponse.json(
-      { success: false, message: "Failed to delete order" },
+      { success: false, message: "Failed to update order." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const id = req.nextUrl.searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, message: "Order ID is required." },
+        { status: 400 }
+      );
+    }
+
+    const existing = await prisma.order.findFirst({
+      where: {
+        OR: [{ id }, { orderId: id }],
+      },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, message: "Order not found." },
+        { status: 404 }
+      );
+    }
+
+    await prisma.order.delete({
+      where: { id: existing.id },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Order deleted successfully.",
+    });
+  } catch (error) {
+    console.error("DELETE /api/orders failed:", error);
+
+    return NextResponse.json(
+      { success: false, message: "Failed to delete order." },
       { status: 500 }
     );
   }

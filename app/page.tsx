@@ -57,10 +57,11 @@ export default async function HomePage() {
     .map((section) => {
       const products = allProducts
         .filter(
-          (product) => normalizeSlug(product.category) === normalizeSlug(section.slug)
+          (product) =>
+            normalizeSlug(product.category) === normalizeSlug(section.slug)
         )
         .sort((a, b) => Number(b.id) - Number(a.id))
-        .slice(0, 4);
+        .slice(0, 12);
 
       return {
         ...section,

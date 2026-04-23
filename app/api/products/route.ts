@@ -1,228 +1,222 @@
-import { NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-const filePath = path.join(process.cwd(), "data", "products.json");
-
-type Product = {
-  id: number;
-  name: string;
-  price: number;
-  image: string;
-  category: string;
+type ProductBody = {
+  id?: number;
+  name?: string;
+  price?: number;
+  image?: string;
+  category?: string;
   subcategory?: string;
   description?: string;
   stock?: number;
 };
 
-async function ensureProductsFile() {
-  const dir = path.dirname(filePath);
-  await fs.mkdir(dir, { recursive: true });
-
-  try {
-    await fs.access(filePath);
-  } catch {
-    await fs.writeFile(filePath, "[]", "utf-8");
-  }
-}
-
-async function readProducts(): Promise<Product[]> {
-  await ensureProductsFile();
-
-  const file = await fs.readFile(filePath, "utf-8");
-  if (!file.trim()) return [];
-
-  const parsed = JSON.parse(file);
-  return Array.isArray(parsed) ? parsed : [];
-}
-
-async function writeProducts(products: Product[]) {
-  await ensureProductsFile();
-  await fs.writeFile(filePath, JSON.stringify(products, null, 2), "utf-8");
-}
-
-function cleanString(value: unknown) {
+function normalizeString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function cleanNumber(value: unknown, fallback = 0) {
+function normalizeNumber(value: unknown, fallback = 0) {
   const num = Number(value);
   return Number.isFinite(num) ? num : fallback;
 }
 
-function cleanStock(value: unknown) {
-  const num = Math.floor(cleanNumber(value, 0));
-  return Math.max(0, num);
-}
-
-function normalizeProductInput(body: any, existing?: Product): Omit<Product, "id"> {
-  const name = cleanString(body?.name ?? existing?.name);
-  const image = cleanString(body?.image ?? existing?.image);
-  const category = cleanString(body?.category ?? existing?.category);
-  const subcategory = cleanString(body?.subcategory ?? existing?.subcategory);
-  const description = cleanString(body?.description ?? existing?.description);
-  const price = cleanNumber(body?.price, existing?.price ?? 0);
-
-  const stock =
-    body?.stock !== undefined
-      ? cleanStock(body.stock)
-      : existing?.stock !== undefined
-      ? cleanStock(existing.stock)
-      : 0;
-
-  return {
-    name,
-    price,
-    image,
-    category,
-    subcategory: subcategory || undefined,
-    description: description || "",
-    stock,
-  };
-}
-
-function validateProductInput(product: Omit<Product, "id">) {
-  if (!product.name) return "Product name is required";
-  if (!Number.isFinite(product.price) || product.price < 0) {
-    return "Valid product price is required";
-  }
-  if (!product.image) return "Product image is required";
-  if (!product.category) return "Product category is required";
-  if (!Number.isFinite(product.stock ?? 0) || (product.stock ?? 0) < 0) {
-    return "Valid product stock is required";
-  }
-
-  return null;
-}
-
 export async function GET() {
   try {
-    const products = await readProducts();
-    return NextResponse.json(products, { status: 200 });
-  } catch (error) {
-    console.error("GET /api/products error:", error);
+    const products = await prisma.product.findMany({
+      orderBy: { id: "desc" },
+    });
+
+    return NextResponse.json({
+      success: true,
+      products,
+    });
+  } catch {
     return NextResponse.json(
-      { message: "Failed to fetch products" },
+      {
+        success: false,
+        message: "Failed to fetch products.",
+      },
       { status: 500 }
     );
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const products = await readProducts();
+    const body = (await req.json()) as ProductBody;
 
-    const normalized = normalizeProductInput(body);
-    const validationError = validateProductInput(normalized);
+    const name = normalizeString(body.name);
+    const category = normalizeString(body.category);
+    const image = normalizeString(body.image);
+    const subcategory = normalizeString(body.subcategory);
+    const description = normalizeString(body.description);
+    const price = normalizeNumber(body.price, 0);
+    const stock = Math.max(0, Math.floor(normalizeNumber(body.stock, 0)));
 
-    if (validationError) {
-      return NextResponse.json({ message: validationError }, { status: 400 });
-    }
-
-    const newProduct: Product = {
-      id: Date.now(),
-      ...normalized,
-    };
-
-    products.push(newProduct);
-    await writeProducts(products);
-
-    return NextResponse.json(newProduct, { status: 201 });
-  } catch (error) {
-    console.error("POST /api/products error:", error);
-    return NextResponse.json(
-      { message: "Failed to create product" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function PUT(req: Request) {
-  try {
-    const body = await req.json();
-    const products = await readProducts();
-
-    const productId = Number(body?.id);
-
-    if (!Number.isFinite(productId) || productId <= 0) {
+    if (!name) {
       return NextResponse.json(
-        { message: "Product id is required" },
+        { success: false, message: "Product name is required." },
         { status: 400 }
       );
     }
 
-    const productIndex = products.findIndex((product) => product.id === productId);
-
-    if (productIndex === -1) {
+    if (!category) {
       return NextResponse.json(
-        { message: "Product not found" },
-        { status: 404 }
+        { success: false, message: "Category is required." },
+        { status: 400 }
       );
     }
 
-    const existingProduct = products[productIndex];
-    const normalized = normalizeProductInput(body, existingProduct);
-    const validationError = validateProductInput(normalized);
-
-    if (validationError) {
-      return NextResponse.json({ message: validationError }, { status: 400 });
+    if (price < 0) {
+      return NextResponse.json(
+        { success: false, message: "Price cannot be negative." },
+        { status: 400 }
+      );
     }
 
-    const updatedProduct: Product = {
-      id: productId,
-      ...normalized,
-    };
+    const product = await prisma.product.create({
+      data: {
+        name,
+        price,
+        image: image || "/uploads/placeholder-product.png",
+        category,
+        subcategory: subcategory || null,
+        description: description || null,
+        stock,
+      },
+    });
 
-    products[productIndex] = updatedProduct;
-    await writeProducts(products);
-
-    return NextResponse.json(updatedProduct, { status: 200 });
-  } catch (error) {
-    console.error("PUT /api/products error:", error);
+    return NextResponse.json({
+      success: true,
+      message: "Product created successfully.",
+      product,
+    });
+  } catch {
     return NextResponse.json(
-      { message: "Failed to update product" },
+      {
+        success: false,
+        message: "Failed to create product.",
+      },
       { status: 500 }
     );
   }
 }
 
-export async function DELETE(req: Request) {
+export async function PUT(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const id = Number(searchParams.get("id"));
+    const body = (await req.json()) as ProductBody;
 
-    if (!Number.isFinite(id) || id <= 0) {
+    const id = Number(body.id);
+    if (!Number.isFinite(id)) {
       return NextResponse.json(
-        { message: "Product id is required" },
+        { success: false, message: "Valid product ID is required." },
         { status: 400 }
       );
     }
 
-    const products = await readProducts();
-    const productExists = products.some((product) => product.id === id);
+    const existing = await prisma.product.findUnique({
+      where: { id },
+    });
 
-    if (!productExists) {
+    if (!existing) {
       return NextResponse.json(
-        { message: "Product not found" },
+        { success: false, message: "Product not found." },
         { status: 404 }
       );
     }
 
-    const filteredProducts = products.filter((product) => product.id !== id);
-    await writeProducts(filteredProducts);
+    const name = normalizeString(body.name) || existing.name;
+    const category = normalizeString(body.category) || existing.category;
+    const image = normalizeString(body.image) || existing.image;
+    const subcategory =
+      body.subcategory !== undefined
+        ? normalizeString(body.subcategory) || null
+        : existing.subcategory;
+    const description =
+      body.description !== undefined
+        ? normalizeString(body.description) || null
+        : existing.description;
+    const price =
+      body.price !== undefined ? normalizeNumber(body.price, existing.price) : existing.price;
+    const stock =
+      body.stock !== undefined
+        ? Math.max(0, Math.floor(normalizeNumber(body.stock, existing.stock)))
+        : existing.stock;
 
+    if (price < 0) {
+      return NextResponse.json(
+        { success: false, message: "Price cannot be negative." },
+        { status: 400 }
+      );
+    }
+
+    const product = await prisma.product.update({
+      where: { id },
+      data: {
+        name,
+        price,
+        image,
+        category,
+        subcategory,
+        description,
+        stock,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Product updated successfully.",
+      product,
+    });
+  } catch {
     return NextResponse.json(
-      { message: "Product deleted successfully" },
-      { status: 200 }
+      {
+        success: false,
+        message: "Failed to update product.",
+      },
+      { status: 500 }
     );
-  } catch (error) {
-    console.error("DELETE /api/products error:", error);
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const idParam = req.nextUrl.searchParams.get("id");
+    const id = Number(idParam);
+
+    if (!Number.isFinite(id)) {
+      return NextResponse.json(
+        { success: false, message: "Valid product ID is required." },
+        { status: 400 }
+      );
+    }
+
+    const existing = await prisma.product.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, message: "Product not found." },
+        { status: 404 }
+      );
+    }
+
+    await prisma.product.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Product deleted successfully.",
+    });
+  } catch {
     return NextResponse.json(
-      { message: "Failed to delete product" },
+      {
+        success: false,
+        message: "Failed to delete product.",
+      },
       { status: 500 }
     );
   }

@@ -5,9 +5,7 @@ export default function BrandsSection() {
     <section className="container-ph section-gap">
       <div className="text-center mb-10">
         <h2 className="text-3xl font-semibold">Top Brands</h2>
-        <p className="text-neutral-600 mt-2">
-          Trusted brands available in our store
-        </p>
+        
       </div>
 
       <div className="grid grid-cols-2 gap-6 md:grid-cols-4">

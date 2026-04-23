@@ -1,7 +1,4 @@
-import fs from "fs/promises";
-import path from "path";
-
-const filePath = path.join(process.cwd(), "data", "products.json");
+import { prisma } from "@/lib/prisma";
 
 export type Product = {
   id: number;
@@ -9,16 +6,18 @@ export type Product = {
   price: number;
   image: string;
   category: string;
-  subcategory?: string;
-  description?: string;
+  subcategory?: string | null;
+  description?: string | null;
   stock?: number;
 };
 
 export async function getProducts(): Promise<Product[]> {
   try {
-    const file = await fs.readFile(filePath, "utf-8");
-    const products = JSON.parse(file);
-    return Array.isArray(products) ? products : [];
+    const products = await prisma.product.findMany({
+      orderBy: { id: "desc" },
+    });
+
+    return products;
   } catch {
     return [];
   }

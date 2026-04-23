@@ -1,5 +1,140 @@
 [
   {
+    "id": "order_1776869343583_4n92pr",
+    "orderId": "PH-20260422-5373",
+    "customer": {
+      "name": "bithi",
+      "phone": "01609201790",
+      "city": "dhaka",
+      "address": "uttar badda"
+    },
+    "items": [
+      {
+        "id": 2,
+        "productId": 2,
+        "name": "Velvet Matte Lipstick",
+        "price": 650,
+        "image": "https://images.unsplash.com/photo-1586495777744-4413f21062fa?q=80&w=1200&auto=format&fit=crop",
+        "category": "Cosmetics",
+        "quantity": 1
+      }
+    ],
+    "subtotal": 650,
+    "deliveryFee": 120,
+    "total": 770,
+    "status": "confirmed",
+    "paymentMethod": "bKash",
+    "paymentStatus": "paid",
+    "paymentDetails": {
+      "provider": "bKash",
+      "senderNumber": "01571033214",
+      "trxId": "eklefoi3efi"
+    },
+    "createdAt": "2026-04-22T14:49:03.584Z",
+    "updatedAt": "2026-04-22T14:51:37.050Z"
+  },
+  {
+    "id": "order_1776866142778_sgjs9r",
+    "orderId": "PH-20260422-8187",
+    "customer": {
+      "name": "bithi",
+      "phone": "01609201790",
+      "city": "dhaka",
+      "address": "uttar badda"
+    },
+    "items": [
+      {
+        "id": 1,
+        "productId": 1,
+        "name": "Radiant Glow Serum",
+        "price": 850,
+        "image": "https://images.unsplash.com/photo-1625772452859-1c03d5bf1137?q=80&w=1200&auto=format&fit=crop",
+        "category": "Skincare",
+        "quantity": 1
+      }
+    ],
+    "subtotal": 850,
+    "deliveryFee": 120,
+    "total": 970,
+    "status": "confirmed",
+    "paymentMethod": "bKash",
+    "paymentStatus": "paid",
+    "paymentDetails": {
+      "provider": "bKash",
+      "senderNumber": "01571033214",
+      "trxId": "wuiguqdgu"
+    },
+    "createdAt": "2026-04-22T13:55:42.778Z",
+    "updatedAt": "2026-04-22T14:41:13.108Z"
+  },
+  {
+    "id": "order_1776863441940_j5ds4t",
+    "orderId": "PH-20260422-4745",
+    "customer": {
+      "name": "bithi",
+      "phone": "01609201790",
+      "city": "dhaka",
+      "address": "uttar badda"
+    },
+    "items": [
+      {
+        "id": 1776521072862,
+        "productId": 1776521072862,
+        "name": "sunsilk sampoo",
+        "price": 450,
+        "image": "/uploads/products/667844814-122106822753286272-77577150415-1776521072827-uloyz57d.jpg",
+        "category": "Haircare",
+        "quantity": 1
+      }
+    ],
+    "subtotal": 450,
+    "deliveryFee": 120,
+    "total": 570,
+    "status": "pending",
+    "paymentMethod": "bKash",
+    "paymentStatus": "paid",
+    "paymentDetails": {
+      "provider": "bKash",
+      "senderNumber": "01609201790",
+      "trxId": "97t67r8"
+    },
+    "createdAt": "2026-04-22T13:10:41.941Z",
+    "updatedAt": "2026-04-22T14:30:50.664Z"
+  },
+  {
+    "id": "order_1776863092182_xzep27",
+    "orderId": "PH-20260422-9066",
+    "customer": {
+      "name": "bithi",
+      "phone": "01609201790",
+      "city": "dhaka",
+      "address": "uttar badda"
+    },
+    "items": [
+      {
+        "id": 1776838633054,
+        "productId": 1776838633054,
+        "name": "cosrx cream 200 gm",
+        "price": 1200,
+        "image": "/uploads/products/649593679-122103256113286272-82743845108-1776838633028-dt83hkkd.jpg",
+        "category": "Skincare",
+        "quantity": 1
+      }
+    ],
+    "subtotal": 1200,
+    "deliveryFee": 120,
+    "total": 1320,
+    "status": "pending",
+    "paymentMethod": "bKash",
+    "paymentStatus": "awaiting_verification",
+    "paymentDetails": {
+      "provider": "bKash",
+      "senderNumber": "7t898tg87t78yty6d67",
+      "trxId": "97t67r8"
+    },
+    "createdAt": "2026-04-22T13:04:52.182Z"
+  },
+  {
     "id": "PHB-260409-813832-2576",
     "orderId": "PHB-260409-813832-2576",
     "customer": {
@@ -100,5 +235,161 @@
     "paymentMethod": "Cash on Delivery",
     "createdAt": "2026-04-11T07:13:01.937Z",
     "updatedAt": "2026-04-11T07:14:07.204Z"
+  },
+  {
+    "id": "PHB-260416-178417-1970",
+    "orderId": "PHB-260416-178417-1970",
+    "customer": {
+      "name": "bithi",
+      "phone": "01609201790",
+      "address": "y7",
+      "city": "8y8t"
+    },
+    "items": [
+      {
+        "id": 1775805393239,
+        "productId": 1775805393239,
+        "name": "herbal essence",
+        "price": 250,
+        "quantity": 2,
+        "image": "/uploads/products/15349982-9ea0-4762-8adf-eeb4e8687969-1775805393222-wq3xeeeh.jpg",
+        "category": "Haircare"
+      },
+      {
+        "id": 1775681507400,
+        "productId": 1775681507400,
+        "name": "Neutrogena Hydro Boost",
+        "price": 1200,
+        "quantity": 3,
+        "image": "/uploads/products/1775681507382-czy7fbeplz5.jpg",
+        "category": "Skincare"
+      },
+      {
+        "id": 1775806823707,
+        "productId": 1775806823707,
+        "name": "hydro boost",
+        "price": 1500,
+        "quantity": 2,
+        "image": "/uploads/products/whatsapp-image-2026-04-07-at-02-29-56-2-1775806823693-yon26bt3.jpg",
+        "category": "Skincare"
+      },
+      {
+        "id": 1776269976255,
+        "productId": 1776269976255,
+        "name": "dUNHILL PERFUME",
+        "price": 1800,
+        "quantity": 1,
+        "image": "/uploads/products/650302693-122103765867286272-68500715523-1776269976243-evkiem5y.jpg",
+        "category": "Perfume"
+      },
+      {
+        "id": 2,
+        "productId": 2,
+        "name": "Velvet Matte Lipstick",
+        "price": 650,
+        "quantity": 8,
+        "image": "https://images.unsplash.com/photo-1586495777744-4413f21062fa?q=80&w=1200&auto=format&fit=crop",
+        "category": "Cosmetics"
+      }
+    ],
+    "subtotal": 14100,
+    "deliveryFee": 80,
+    "total": 14180,
+    "status": "pending",
+    "paymentMethod": "Cash on Delivery",
+    "createdAt": "2026-04-16T07:39:38.417Z",
+    "updatedAt": "2026-04-16T07:39:38.417Z"
+  },
+  {
+    "id": "PHB-260417-937684-2335",
+    "orderId": "PHB-260417-937684-2335",
+    "customer": {
+      "name": "bithi",
+      "phone": "01609201790",
+      "address": "uttar badda",
+      "city": "dhaka"
+    },
+    "items": [
+      {
+        "id": 2,
+        "productId": 2,
+        "name": "Velvet Matte Lipstick",
+        "price": 650,
+        "quantity": 3,
+        "image": "https://images.unsplash.com/photo-1586495777744-4413f21062fa?q=80&w=1200&auto=format&fit=crop",
+        "category": "Cosmetics"
+      },
+      {
+        "id": 1776269761689,
+        "productId": 1776269761689,
+        "name": "Neutrogena Face wash",
+        "price": 699,
+        "quantity": 1,
+        "image": "/uploads/products/649405154-122103204867286272-82151971729-1776269761675-s565hpux.jpg",
+        "category": "Skincare"
+      },
+      {
+        "id": 1776269718921,
+        "productId": 1776269718921,
+        "name": "Neutrogena Face wash",
+        "price": 800,
+        "quantity": 1,
+        "image": "/uploads/products/648805242-122103204951286272-45700633640-1776269718906-kd0cnza4.jpg",
+        "category": "Skincare"
+      },
+      {
+        "id": 1776270049940,
+        "productId": 1776270049940,
+        "name": "BHA exfoliant",
+        "price": 1600,
+        "quantity": 1,
+        "image": "/uploads/products/652457129-122103984993286272-61124223255-1776270049927-rnqduc6f.jpg",
+        "category": "Skincare"
+      }
+    ],
+    "subtotal": 5049,
+    "deliveryFee": 80,
+    "total": 5129,
+    "status": "pending",
+    "paymentMethod": "Cash on Delivery",
+    "createdAt": "2026-04-17T17:12:17.684Z",
+    "updatedAt": "2026-04-17T17:12:17.684Z"
+  },
+  {
+    "id": "PHB-260422-728855-8860",
+    "orderId": "PHB-260422-728855-8860",
+    "customer": {
+      "name": "bithi",
+      "phone": "01609201790",
+      "address": "uttar badda",
+      "city": "dhaka"
+    },
+    "items": [
+      {
+        "id": 1776270905410,
+        "productId": 1776270905410,
+        "name": "Head & shoulders",
+        "price": 560,
+        "quantity": 1,
+        "image": "/uploads/products/669529057-122107251489286272-65089048034-1776270905395-56pad28b.jpg",
+        "category": "Haircare"
+      },
+      {
+        "id": 1776271129755,
+        "productId": 1776271129755,
+        "name": "Ultra DOUX ULTRA NOURISHING SHAMPOO",
+        "price": 750,
+        "quantity": 2,
+        "image": "/uploads/products/669132514-122107145583286272-83361524402-1776271129734-z53gwenu.jpg",
+        "category": "Haircare"
+      }
+    ],
+    "subtotal": 2060,
+    "deliveryFee": 120,
+    "total": 2180,
+    "status": "pending",
+    "paymentMethod": "Cash on Delivery",
+    "createdAt": "2026-04-22T06:52:08.855Z",
+    "updatedAt": "2026-04-22T06:52:08.855Z"
   }
 ]
