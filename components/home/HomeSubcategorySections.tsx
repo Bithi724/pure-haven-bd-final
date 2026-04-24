@@ -88,13 +88,14 @@ const categorySections = [
     fallback:
       "https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=1200&auto=format&fit=crop",
     subcategories: [
-      "edt-men",
-      "edp-men",
-      "perfume-men",
-      "edt-women",
-      "edp-women",
-      "perfume-women",
-      "attar",
+      "EDT-Men",
+      "EDT-Women",
+      "EDP-Men",
+      "EDP-Women",
+      "Men's-Perfume",
+      "Women's-Perfume",
+      
+      "Attar",
       "others",
     ],
   },
@@ -105,16 +106,16 @@ const categorySections = [
     fallback:
       "https://images.unsplash.com/photo-1587049352851-8d4e89133924?q=80&w=1200&auto=format&fit=crop",
     subcategories: [
-      "oil-ghee",
+      " Olive-oil",
       "honey",
       "dates",
-      "spices",
+      
       "nuts-seeds",
       "beverage",
-      "rice",
-      "flours-lentils",
-      "certified",
-      "pickle",
+      
+      
+      
+      
       "others",
     ],
   },
@@ -125,13 +126,13 @@ const categorySections = [
     fallback:
       "https://images.unsplash.com/photo-1516257984-b1b4d707412e?q=80&w=1200&auto=format&fit=crop",
     subcategories: [
-      "shirts",
-      "t-shirts",
-      "panjabi",
-      "pants",
-      "wallet",
-      "belt",
-      "watch",
+      "Men's shampoo",
+      " Beard oil",
+      "Shaving cream",
+      "Shaving razor",
+      "Shaving gel",
+      "Beard shampoo",
+      
       "others",
     ],
   },

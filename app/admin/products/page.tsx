@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type Product = {
@@ -15,208 +16,87 @@ type Product = {
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
 
-  const [form, setForm] = useState<Product>({
-    id: 0,
-    name: "",
-    price: 0,
-    image: "",
-    category: "",
-    subcategory: "",
-    description: "",
-    stock: 0,
-  });
-
-  async function fetchProducts() {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/products");
-      const data = await res.json();
-      setProducts(data.products || []);
-    } catch {
-      alert("Failed to load products");
-    } finally {
-      setLoading(false);
-    }
+  async function loadProducts() {
+    const res = await fetch("/api/products", { cache: "no-store" });
+    const data = await res.json();
+    setProducts(data.products || []);
   }
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
-  }
-
-  async function handleSubmit() {
-    if (!form.name || !form.category) {
-      alert("Name and category required");
-      return;
-    }
-
-    const method = form.id ? "PUT" : "POST";
-
-    await fetch("/api/products", {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-
-    resetForm();
-    fetchProducts();
-  }
-
-  function handleEdit(product: Product) {
-    setForm(product);
-  }
-
-  async function handleDelete(id: number) {
-    if (!confirm("Delete product?")) return;
+  async function deleteProduct(id: number) {
+    if (!confirm("Delete this product?")) return;
 
     await fetch(`/api/products?id=${id}`, {
       method: "DELETE",
     });
 
-    fetchProducts();
+    loadProducts();
   }
 
-  function resetForm() {
-    setForm({
-      id: 0,
-      name: "",
-      price: 0,
-      image: "",
-      category: "",
-      subcategory: "",
-      description: "",
-      stock: 0,
-    });
-  }
+  useEffect(() => {
+    loadProducts();
+  }, []);
 
   return (
-    <div className="container-ph py-6">
-      <h1 className="text-2xl font-semibold mb-6">Admin Products</h1>
+    <main className="container-ph py-10">
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="text-3xl font-semibold text-[#2e221d]">
+          Admin Products
+        </h1>
 
-      {/* FORM */}
-      <div className="mb-8 rounded-xl border p-4 bg-white">
-        <div className="grid gap-3 md:grid-cols-2">
-          <input
-            name="name"
-            placeholder="Product Name"
-            value={form.name}
-            onChange={handleChange}
-            className="input-soft"
-          />
-          <input
-            name="price"
-            type="number"
-            placeholder="Price"
-            value={form.price}
-            onChange={handleChange}
-            className="input-soft"
-          />
-          <input
-            name="image"
-            placeholder="Image URL"
-            value={form.image}
-            onChange={handleChange}
-            className="input-soft"
-          />
-          <input
-            name="category"
-            placeholder="Category"
-            value={form.category}
-            onChange={handleChange}
-            className="input-soft"
-          />
-          <input
-            name="subcategory"
-            placeholder="Subcategory"
-            value={form.subcategory || ""}
-            onChange={handleChange}
-            className="input-soft"
-          />
-          <input
-            name="stock"
-            type="number"
-            placeholder="Stock"
-            value={form.stock}
-            onChange={handleChange}
-            className="input-soft"
-          />
-        </div>
-
-        <textarea
-          name="description"
-          placeholder="Description"
-          value={form.description || ""}
-          onChange={handleChange}
-          className="input-soft mt-3 w-full"
-        />
-
-        <div className="mt-4 flex gap-3">
-          <button
-            onClick={handleSubmit}
-            className="btn-primary px-4 py-2"
-          >
-            {form.id ? "Update Product" : "Add Product"}
-          </button>
-
-          <button
-            onClick={resetForm}
-            className="btn-secondary px-4 py-2"
-          >
-            Reset
-          </button>
-        </div>
+        <Link
+          href="/admin/products/add"
+          className="rounded-full bg-[#2e221d] px-5 py-3 text-sm font-semibold text-white"
+        >
+          Add New Product
+        </Link>
       </div>
 
-      {/* LIST */}
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {products.map((p) => (
-            <div
-              key={p.id}
-              className="border rounded-xl p-3 bg-white"
-            >
-              <img
-                src={p.image}
-                className="w-full h-40 object-cover rounded mb-2"
-              />
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        {products.map((p) => (
+          <div
+            key={p.id}
+            className="rounded-[22px] border border-[#ead9d1] bg-white p-4 shadow-sm"
+          >
+            <img
+              src={p.image || "/uploads/placeholder-product.png"}
+              alt={p.name}
+              className="h-52 w-full rounded-[16px] object-cover"
+            />
 
-              <h3 className="font-semibold">{p.name}</h3>
-              <p className="text-sm">৳ {p.price}</p>
-              <p className="text-xs text-gray-500">
-                {p.category} / {p.subcategory}
-              </p>
+            <h2 className="mt-4 text-lg font-semibold text-[#2e221d]">
+              {p.name}
+            </h2>
 
-              <div className="mt-3 flex gap-2">
-                <button
-                  onClick={() => handleEdit(p)}
-                  className="text-sm bg-yellow-400 px-3 py-1 rounded"
-                >
-                  Edit
-                </button>
+            <p className="mt-1 font-semibold">৳ {p.price}</p>
 
-                <button
-                  onClick={() => handleDelete(p.id)}
-                  className="text-sm bg-red-500 text-white px-3 py-1 rounded"
-                >
-                  Delete
-                </button>
-              </div>
+            <p className="mt-1 text-sm text-neutral-500">
+              {p.category}
+              {p.subcategory ? ` / ${p.subcategory}` : ""}
+            </p>
+
+            <p className="mt-1 text-sm text-neutral-500">
+              Stock: {p.stock ?? 0}
+            </p>
+
+            <div className="mt-4 flex gap-2">
+              <Link
+                href={`/admin/products/${p.id}/edit`}
+                className="rounded-md bg-yellow-400 px-4 py-2 text-sm font-semibold text-black"
+              >
+                Edit
+              </Link>
+
+              <button
+                onClick={() => deleteProduct(p.id)}
+                className="rounded-md bg-red-500 px-4 py-2 text-sm font-semibold text-white"
+              >
+                Delete
+              </button>
             </div>
-          ))}
-        </div>
-      )}
-    </div>
+          </div>
+        ))}
+      </div>
+    </main>
   );
 }

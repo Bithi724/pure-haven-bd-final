@@ -1,14 +1,30 @@
-import "./globals.css";
 import type { Metadata } from "next";
-import { CartProvider } from "@/components/cart/CartContext";
-import { WishlistProvider } from "@/components/wishlist/WishlistContext";
-import { MobileUIProvider } from "@/components/mobile/MobileUIContext";
-import MobileBottomNav from "@/components/mobile/MobileBottomNav";
-import FloatingCartSummary from "@/components/mobile/FloatingCartSummary";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Pure Haven BD",
-  description: "Beauty, care, fragrance and essentials.",
+  metadataBase: new URL("https://pure-haven-bd-final-wdb1.vercel.app"),
+  title: {
+    default: "Pure Haven BD | Beauty, Skincare, Perfume & Lifestyle Store",
+    template: "%s | Pure Haven BD",
+  },
+  description:
+    "Shop cosmetics, skincare, haircare, perfume, men's products, and lifestyle essentials from Pure Haven BD.",
+  keywords: [
+    "Pure Haven BD",
+    "Bangladesh ecommerce",
+    "cosmetics Bangladesh",
+    "skincare Bangladesh",
+    "perfume Bangladesh",
+    "haircare products",
+  ],
+  openGraph: {
+    title: "Pure Haven BD",
+    description:
+      "Beauty, skincare, fragrance and lifestyle essentials in one online store.",
+    url: "https://pure-haven-bd-final-wdb1.vercel.app",
+    siteName: "Pure Haven BD",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -18,17 +34,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-[#fffaf7] pb-20 lg:pb-0">
-        <CartProvider>
-          <WishlistProvider>
-            <MobileUIProvider>
-              {children}
-              <FloatingCartSummary />
-              <MobileBottomNav />
-            </MobileUIProvider>
-          </WishlistProvider>
-        </CartProvider>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
