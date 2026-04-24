@@ -1,9 +1,9 @@
+import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ProductCard from "@/components/ui/ProductCard";
 import { getProducts, type Product } from "@/lib/getProducts";
-import Link from "next/link";
 
 type ShopPageProps = {
   searchParams?: Promise<{
@@ -22,9 +22,91 @@ function slug(value?: string | null) {
 function label(value?: string | null) {
   return (value || "")
     .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 }
+
+const fallbackImage =
+  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=1200&auto=format&fit=crop";
+
+const fixedSubcategories: Record<string, string[]> = {
+  cosmetics: [
+    "lipstick",
+    "liquid-lipstick",
+    "lip-liner",
+    "lip-gloss",
+    "lip-balm",
+    "foundation",
+    "face-powder",
+    "primer",
+    "concealer",
+    "blush",
+    "highlighter",
+    "eyeliner",
+    "kajal",
+    "mascara",
+    "eyeshadow",
+    "eyebrow-pencil",
+    "brush",
+  ],
+  skincare: [
+    "face-wash",
+    "moisturizer",
+    "cream",
+    "lotion",
+    "serum",
+    "sunscreen",
+    "toner",
+    "scrub",
+    "face-mask",
+    "petroleum-jelly",
+    "others",
+  ],
+  haircare: [
+    "shampoo",
+    "conditioner",
+    "hair-oil",
+    "hair-serum",
+    "hair-mask",
+    "hair-color",
+    "hair-treatment",
+    "styling-gel-spray",
+    "others",
+  ],
+  perfume: [
+    "edt-men",
+    "edp-men",
+    "perfume-men",
+    "edt-women",
+    "edp-women",
+    "perfume-women",
+    "attar",
+    "others",
+  ],
+  food: [
+    "oil-ghee",
+    "honey",
+    "dates",
+    "spices",
+    "nuts-seeds",
+    "beverage",
+    "rice",
+    "flours-lentils",
+    "certified",
+    "pickle",
+    "others",
+  ],
+  "mens-products": [
+    "shirts",
+    "t-shirts",
+    "panjabi",
+    "pants",
+    "wallet",
+    "belt",
+    "watch",
+    "others",
+  ],
+};
 
 export default async function ShopPage({ searchParams }: ShopPageProps) {
   const params = (await searchParams) || {};
@@ -34,29 +116,30 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   const allProducts = await getProducts();
 
   const categoryProducts = category
-    ? allProducts.filter((p) => slug(p.category) === category)
+    ? allProducts.filter((product) => slug(product.category) === category)
     : allProducts;
 
-  const subcategories = Array.from(
-    new Map(
-      categoryProducts
-        .filter((p) => p.subcategory)
-        .map((p) => [
-          slug(p.subcategory),
-          {
-            title: label(slug(p.subcategory)),
-            slug: slug(p.subcategory),
-            image: p.image,
-          },
-        ])
-    ).values()
-  );
+  const categoryImage = categoryProducts[0]?.image || fallbackImage;
+
+  const subcategories = category
+    ? (fixedSubcategories[category] || []).map((item) => {
+        const matchedProduct = categoryProducts.find(
+          (product) => slug(product.subcategory) === item
+        );
+
+        return {
+          title: label(item),
+          slug: item,
+          image: matchedProduct?.image || categoryImage,
+        };
+      })
+    : [];
 
   const visibleProducts =
     category && !subcategory
       ? []
-      : categoryProducts.filter((p) =>
-          subcategory ? slug(p.subcategory) === subcategory : true
+      : categoryProducts.filter((product: Product) =>
+          subcategory ? slug(product.subcategory) === subcategory : true
         );
 
   return (
@@ -93,7 +176,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
                 <Link
                   key={item.slug}
                   href={`/shop?category=${category}&subcategory=${item.slug}`}
-                  className={`relative h-[300px] w-[260px] shrink-0 overflow-hidden rounded-[28px] border shadow-sm ${
+                  className={`relative h-[300px] w-[260px] shrink-0 overflow-hidden rounded-[28px] border shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
                     subcategory === item.slug
                       ? "border-[#2e221d]"
                       : "border-[#ead9d1]"
@@ -104,7 +187,9 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
                     alt={item.title}
                     className="h-full w-full object-cover"
                   />
+
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+
                   <div className="absolute bottom-5 left-5 text-white">
                     <p className="text-xs uppercase tracking-[0.2em]">
                       Subcategory
@@ -126,6 +211,15 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
             </h2>
             <p className="mt-2 text-sm text-neutral-600">
               Products will appear after choosing a subcategory.
+            </p>
+          </div>
+        ) : visibleProducts.length === 0 ? (
+          <div className="rounded-[24px] border border-[#ead9d1] bg-white p-8 text-center">
+            <h2 className="text-xl font-semibold text-[#2e221d]">
+              No products found
+            </h2>
+            <p className="mt-2 text-sm text-neutral-600">
+              Products will appear here when available.
             </p>
           </div>
         ) : (
