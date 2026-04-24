@@ -3,61 +3,17 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import EditorialPromoSection from "@/components/home/EditorialPromoSection";
 import CategorySection from "@/components/home/CategorySection";
-import ProductSection from "@/components/home/ProductSection";
+import HomeSubcategorySections from "@/components/home/HomeSubcategorySections";
 import DealsBanner from "@/components/home/DealsBanner";
 import BrandsSection from "@/components/home/BrandsSection";
 import TrustSection from "@/components/home/TrustSection";
-import { getProducts, type Product } from "@/lib/getProducts";
+import { getProducts } from "@/lib/getProducts";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-function normalizeSlug(value?: string | null) {
-  return (value || "").trim().toLowerCase().replace(/\s+/g, "-");
-}
-
-const homeCategoryConfig = [
-  {
-    title: "Cosmetics",
-    slug: "cosmetics",
-    subtitle: "Everyday beauty and makeup essentials.",
-  },
-  {
-    title: "Skincare",
-    slug: "skincare",
-    subtitle: "Daily care picks for a healthier glow.",
-  },
-  {
-    title: "Perfume",
-    slug: "perfume",
-    subtitle: "Signature scents and fragrance favorites.",
-  },
-  {
-    title: "Food",
-    slug: "food",
-    subtitle: "Selected pantry and lifestyle essentials.",
-  },
-];
-
 export default async function HomePage() {
-  const allProducts = await getProducts();
-
-  const categorySections = homeCategoryConfig
-    .map((section) => {
-      const products: Product[] = allProducts
-        .filter(
-          (product) =>
-            normalizeSlug(product.category) === normalizeSlug(section.slug)
-        )
-        .sort((a, b) => Number(b.id) - Number(a.id))
-        .slice(0, 4);
-
-      return {
-        ...section,
-        products,
-      };
-    })
-    .filter((section) => section.products.length > 0);
+  const products = await getProducts();
 
   return (
     <main>
@@ -67,15 +23,7 @@ export default async function HomePage() {
       <EditorialPromoSection />
       <CategorySection />
 
-      {categorySections.map((section) => (
-        <ProductSection
-          key={section.slug}
-          title={section.title}
-          subtitle={section.subtitle}
-          products={section.products}
-          viewAllHref={`/shop?category=${section.slug}`}
-        />
-      ))}
+      <HomeSubcategorySections products={products} />
 
       <DealsBanner />
       <BrandsSection />
