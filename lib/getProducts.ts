@@ -6,19 +6,24 @@ export type Product = {
   price: number;
   image: string;
   category: string;
-  subcategory?: string | null;
-  description?: string | null;
+  subcategory?: string; // 🔥 IMPORTANT
+  description?: string;
   stock?: number;
 };
 
 export async function getProducts(): Promise<Product[]> {
-  try {
-    const products = await prisma.product.findMany({
-      orderBy: { id: "desc" },
-    });
+  const products = await prisma.product.findMany({
+    orderBy: { createdAt: "desc" },
+  });
 
-    return products;
-  } catch {
-    return [];
-  }
+  return products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    price: Number(p.price),
+    image: p.image,
+    category: p.category,
+    subcategory: p.subcategory ?? undefined, // 🔥 FIX
+    description: p.description ?? undefined,
+    stock: p.stock ?? 0,
+  }));
 }
