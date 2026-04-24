@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { CartProvider } from "@/components/cart/CartContext";
+import { WishlistProvider } from "@/components/wishlist/WishlistContext";
+import { MobileUIProvider } from "@/components/mobile/MobileUIContext";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://pure-haven-bd-final-wdb1.vercel.app"),
@@ -34,7 +37,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <MobileUIProvider>
+          <CartProvider>
+            <WishlistProvider>{children}</WishlistProvider>
+          </CartProvider>
+        </MobileUIProvider>
+      </body>
     </html>
   );
 }

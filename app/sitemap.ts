@@ -6,15 +6,13 @@ const baseUrl = "https://pure-haven-bd-final-wdb1.vercel.app";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const products = await getProducts();
 
-  const staticRoutes = ["", "/shop", "/track-order"].map((route) => ({
-    url: `${baseUrl}${route}`,
-    lastModified: new Date(),
-  }));
-
-  const productRoutes = products.map((product) => ({
-    url: `${baseUrl}/product/${product.id}`,
-    lastModified: new Date(),
-  }));
-
-  return [...staticRoutes, ...productRoutes];
+  return [
+    { url: baseUrl, lastModified: new Date() },
+    { url: `${baseUrl}/shop`, lastModified: new Date() },
+    { url: `${baseUrl}/track-order`, lastModified: new Date() },
+    ...products.map((p) => ({
+      url: `${baseUrl}/product/${p.id}`,
+      lastModified: new Date(),
+    })),
+  ];
 }
