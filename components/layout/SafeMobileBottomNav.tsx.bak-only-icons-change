@@ -1,0 +1,32 @@
+﻿"use client";
+
+export default function SafeMobileBottomNav() {
+  return (
+    <div className="ph-final-bottom-nav">
+      <a href="/" className="ph-final-nav-btn">
+        <span className="ph-final-nav-icon">⌂</span>
+        <span className="ph-final-nav-label">HOME</span>
+      </a>
+
+      <a href="/shop" className="ph-final-nav-btn">
+        <span className="ph-final-nav-icon">▦</span>
+        <span className="ph-final-nav-label">MENU</span>
+      </a>
+
+      <a href="/cart" className="ph-final-nav-btn">
+        <span className="ph-final-nav-icon">▣</span>
+        <span className="ph-final-nav-label">CART</span>
+      </a>
+
+      <a href="/shop?focus=search" className="ph-final-nav-btn">
+        <span className="ph-final-nav-icon">⌕</span>
+        <span className="ph-final-nav-label">SEARCH</span>
+      </a>
+
+      <a href="/login" className="ph-final-nav-btn">
+        <span className="ph-final-nav-icon">♙</span>
+        <span className="ph-final-nav-label">ACCOUNT</span>
+      </a>
+    </div>
+  );
+}

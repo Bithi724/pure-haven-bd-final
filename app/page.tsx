@@ -1,35 +1,28 @@
 import TopBar from "@/components/layout/TopBar";
 import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
-import EditorialPromoSection from "@/components/home/EditorialPromoSection";
+import HomeHeroSlider from "@/components/home/HomeHeroSlider";
+import HomePromoGrid from "@/components/home/HomePromoGrid";
 import CategorySection from "@/components/home/CategorySection";
-import HomeSubcategorySections from "@/components/home/HomeSubcategorySections";
 import DealsBanner from "@/components/home/DealsBanner";
 import BrandsSection from "@/components/home/BrandsSection";
 import TrustSection from "@/components/home/TrustSection";
-import { getProducts } from "@/lib/getProducts";
+import Footer from "@/components/layout/Footer";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
-export default async function HomePage() {
-  const products = await getProducts();
-
+export default function HomePage() {
   return (
-    <main>
+    <>
       <TopBar />
       <Navbar />
 
-      <EditorialPromoSection />
-      <CategorySection />
+      <HomeHeroSlider />
+      <HomePromoGrid />
 
-      <HomeSubcategorySections products={products} />
+      <CategorySection />
 
       <DealsBanner />
       <BrandsSection />
       <TrustSection />
-
       <Footer />
-    </main>
+    </>
   );
 }

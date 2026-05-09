@@ -52,8 +52,12 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   Product: 'Product',
+  ProductVariant: 'ProductVariant',
   Order: 'Order',
-  OrderItem: 'OrderItem'
+  OrderItem: 'OrderItem',
+  Category: 'Category',
+  Subcategory: 'Subcategory',
+  HomeSlide: 'HomeSlide'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -76,16 +80,39 @@ export const ProductScalarFieldEnum = {
   id: 'id',
   name: 'name',
   price: 'price',
+  compareAtPrice: 'compareAtPrice',
   image: 'image',
   category: 'category',
   subcategory: 'subcategory',
   description: 'description',
   stock: 'stock',
+  isHotDeal: 'isHotDeal',
+  isUpcoming: 'isUpcoming',
+  badgeText: 'badgeText',
+  badgeTone: 'badgeTone',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type ProductScalarFieldEnum = (typeof ProductScalarFieldEnum)[keyof typeof ProductScalarFieldEnum]
+
+
+export const ProductVariantScalarFieldEnum = {
+  id: 'id',
+  productId: 'productId',
+  label: 'label',
+  price: 'price',
+  stock: 'stock',
+  image: 'image',
+  isHotDeal: 'isHotDeal',
+  isUpcoming: 'isUpcoming',
+  badgeTone: 'badgeTone',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ProductVariantScalarFieldEnum = (typeof ProductVariantScalarFieldEnum)[keyof typeof ProductVariantScalarFieldEnum]
 
 
 export const OrderScalarFieldEnum = {
@@ -117,12 +144,58 @@ export const OrderItemScalarFieldEnum = {
   productId: 'productId',
   name: 'name',
   price: 'price',
+  compareAtPrice: 'compareAtPrice',
   image: 'image',
   category: 'category',
   quantity: 'quantity'
 } as const
 
 export type OrderItemScalarFieldEnum = (typeof OrderItemScalarFieldEnum)[keyof typeof OrderItemScalarFieldEnum]
+
+
+export const CategoryScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  slug: 'slug',
+  image: 'image',
+  isActive: 'isActive',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CategoryScalarFieldEnum = (typeof CategoryScalarFieldEnum)[keyof typeof CategoryScalarFieldEnum]
+
+
+export const SubcategoryScalarFieldEnum = {
+  id: 'id',
+  categoryId: 'categoryId',
+  name: 'name',
+  slug: 'slug',
+  isActive: 'isActive',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SubcategoryScalarFieldEnum = (typeof SubcategoryScalarFieldEnum)[keyof typeof SubcategoryScalarFieldEnum]
+
+
+export const HomeSlideScalarFieldEnum = {
+  id: 'id',
+  eyebrow: 'eyebrow',
+  title: 'title',
+  subtitle: 'subtitle',
+  image: 'image',
+  href: 'href',
+  buttonText: 'buttonText',
+  isActive: 'isActive',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type HomeSlideScalarFieldEnum = (typeof HomeSlideScalarFieldEnum)[keyof typeof HomeSlideScalarFieldEnum]
 
 
 export const SortOrder = {

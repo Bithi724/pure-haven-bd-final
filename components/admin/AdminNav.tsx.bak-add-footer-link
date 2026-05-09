@@ -1,0 +1,28 @@
+import Link from "next/link";
+
+const links = [
+  { href: "/admin", label: "Dashboard" },
+  { href: "/admin/products", label: "Products" },
+  { href: "/admin/products/add", label: "Add Product" },
+  { href: "/admin/categories", label: "Categories" },
+  { href: "/admin/orders", label: "Orders" },
+  { href: "/admin/home-promos", label: "Home Slider" },
+];
+
+export default function AdminNav() {
+  return (
+    <nav className="rounded-[28px] border border-[#ead9d1] bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap gap-3">
+        {links.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="rounded-full border border-[#ead9d1] px-4 py-2 text-sm font-semibold text-[#2e221d] hover:bg-[#f8f3ef]"
+          >
+            {link.label}
+          </Link>
+        ))}
+      </div>
+    </nav>
+  );
+}

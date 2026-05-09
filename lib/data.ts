@@ -6,6 +6,12 @@ export const categories = [
     href: "/shop?category=cosmetics",
   },
   {
+    title: "Haircare",
+    image:
+      "https://images.unsplash.com/photo-1522338140262-f46f5913618a?q=80&w=1200&auto=format&fit=crop",
+    href: "/shop?category=haircare",
+  },
+  {
     title: "Skincare",
     image:
       "https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=1200&auto=format&fit=crop",
@@ -18,10 +24,22 @@ export const categories = [
     href: "/shop?category=perfume",
   },
   {
+    title: "Mens Products",
+    image:
+      "https://images.unsplash.com/photo-1516826957135-700dedea698c?q=80&w=1200&auto=format&fit=crop",
+    href: "/shop?category=mens-products",
+  },
+  {
     title: "Food",
     image:
       "https://images.unsplash.com/photo-1587049352851-8d4e89133924?q=80&w=1200&auto=format&fit=crop",
     href: "/shop?category=food",
+  },
+  {
+    title: "Baby Products",
+    image:
+      "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?q=80&w=1200&auto=format&fit=crop",
+    href: "/shop?category=baby-products",
   },
   {
     title: "Essentials",

@@ -56,9 +56,14 @@ export default function ProductSection({
               id={product.id}
               name={product.name}
               price={product.price}
+                compareAtPrice={product.compareAtPrice}
               image={product.image}
               category={product.category}
               stock={product.stock}
+                isHotDeal={product.isHotDeal}
+                isUpcoming={product.isUpcoming}
+                badgeText={product.badgeText}
+                badgeTone={product.badgeTone}
             />
           ))}
         </div>

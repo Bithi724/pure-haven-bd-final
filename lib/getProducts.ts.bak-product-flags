@@ -1,0 +1,129 @@
+import { prisma } from "@/lib/prisma";
+
+export type ProductVariant = {
+  id: number;
+  label: string;
+  price: number;
+  stock: number;
+};
+
+export type Product = {
+  id: number;
+  name: string;
+  price: number;
+  image: string;
+  category: string;
+  subcategory?: string;
+  description?: string;
+  stock?: number;
+  variants?: ProductVariant[];
+};
+
+function mapProduct(product: any): Product {
+  return {
+    id: product.id,
+    name: product.name,
+    price: Number(product.price),
+    image: product.image,
+    category: product.category,
+    subcategory: product.subcategory ?? undefined,
+    description: product.description ?? undefined,
+    stock: product.stock ?? 0,
+    variants: (product.variants || []).map((variant: any) => ({
+      id: variant.id,
+      label: variant.label,
+      price: Number(variant.price),
+      stock: variant.stock ?? 0,
+    })),
+  };
+}
+
+function categoryFromSlug(value?: string) {
+  const map: Record<string, string> = {
+    cosmetics: "Cosmetics",
+    haircare: "Haircare",
+    skincare: "Skincare",
+    perfume: "Perfume",
+    food: "Food",
+    "mens-products": "Mens Products",
+  };
+
+  return value ? map[value] : undefined;
+}
+
+export async function getProducts(): Promise<Product[]> {
+  const products = await prisma.product.findMany({
+    include: {
+      variants: {
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 60,
+  });
+
+  return products.map(mapProduct);
+}
+
+export async function getShopProducts({
+  category,
+  subcategory,
+}: {
+  category?: string;
+  subcategory?: string;
+}): Promise<Product[]> {
+  const dbCategory = categoryFromSlug(category);
+  const cleanSubcategory = subcategory?.trim();
+
+  const products = await prisma.product.findMany({
+    where: {
+      ...(dbCategory
+        ? { category: { equals: dbCategory, mode: "insensitive" } }
+        : {}),
+      ...(cleanSubcategory
+        ? { subcategory: { equals: cleanSubcategory, mode: "insensitive" } }
+        : {}),
+    },
+    include: {
+      variants: {
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 40,
+  });
+
+  return products.map(mapProduct);
+}
+
+export async function getProductById(id: number): Promise<Product | null> {
+  const product = await prisma.product.findUnique({
+    where: { id },
+    include: {
+      variants: {
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+      },
+    },
+  });
+
+  return product ? mapProduct(product) : null;
+}
+
+export async function getRelatedProducts({
+  id,
+  category,
+}: {
+  id: number;
+  category: string;
+}): Promise<Product[]> {
+  const products = await prisma.product.findMany({
+    where: {
+      category: { equals: category, mode: "insensitive" },
+      NOT: { id },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 4,
+  });
+
+  return products.map(mapProduct);
+}

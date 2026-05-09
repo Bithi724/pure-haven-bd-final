@@ -1,0 +1,356 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import AdminNav from "@/components/admin/AdminNav";
+
+type Subcategory = { id: number; name: string; slug: string };
+type Category = { id: number; name: string; slug: string; subcategories: Subcategory[] };
+type VariantInput = { label: string; price: string; stock: string; image: string; imageFile?: File | null };
+
+function safeStock(value: string) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
+}
+
+export default function AddProductPage() {
+  const router = useRouter();
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [variants, setVariants] = useState<VariantInput[]>([{ label: "", price: "", stock: "", image: "", imageFile: null }]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const [form, setForm] = useState({
+    name: "",
+    price: "",
+    compareAtPrice: "",
+    categoryId: "",
+    subcategoryId: "",
+    description: "",
+    stock: "",
+    isHotDeal: false,
+    isUpcoming: false,
+    badgeText: "",
+    badgeTone: "sale",
+  });
+
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        const res = await fetch("/api/categories", { cache: "no-store" });
+        const data = await res.json();
+
+        const list: Category[] =
+          res.ok && data?.success && Array.isArray(data.categories)
+            ? data.categories
+            : [];
+
+        setCategories(list);
+
+        const first = list[0];
+        const firstSub = first?.subcategories?.[0];
+
+        setForm((prev) => ({
+          ...prev,
+          categoryId: first ? String(first.id) : "",
+          subcategoryId: firstSub ? String(firstSub.id) : "",
+        }));
+      } catch {
+        setCategories([]);
+      }
+    }
+
+    loadCategories();
+  }, []);
+
+  const selectedCategory = useMemo(
+    () => categories.find((c) => String(c.id) === form.categoryId),
+    [categories, form.categoryId]
+  );
+
+  const subcategories = selectedCategory?.subcategories || [];
+
+  const selectedSubcategory = useMemo(
+    () => subcategories.find((s) => String(s.id) === form.subcategoryId),
+    [subcategories, form.subcategoryId]
+  );
+
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) {
+    const target = e.target as HTMLInputElement;
+    const { name, value } = target;
+
+    if (target.type === "checkbox") {
+      setForm((prev) => ({ ...prev, [name]: target.checked }));
+      return;
+    }
+
+    if (name === "categoryId") {
+      const nextCategory = categories.find((c) => String(c.id) === value);
+      const firstSub = nextCategory?.subcategories?.[0];
+
+      setForm((prev) => ({
+        ...prev,
+        categoryId: value,
+        subcategoryId: firstSub ? String(firstSub.id) : "",
+      }));
+      return;
+    }
+
+    setForm((prev) => ({ ...prev, [name]: value }));
+  }
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] || null;
+    setImageFile(file);
+    setPreviewUrl(file ? URL.createObjectURL(file) : "");
+  }
+
+  function addVariant() {
+    setVariants((prev) => [...prev, { label: "", price: "", stock: "", image: "", imageFile: null }]);
+  }
+
+  function updateVariant(index: number, field: keyof VariantInput, value: string) {
+    setVariants((prev) =>
+      prev.map((variant, i) =>
+        i === index ? { ...variant, [field]: value } : variant
+      )
+    );
+  }
+
+  function removeVariant(index: number) {
+    setVariants((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function updateVariantFile(index: number, file: File | null) {
+    setVariants((prev) =>
+      prev.map((variant, i) =>
+        i === index ? { ...variant, imageFile: file } : variant
+      )
+    );
+  }
+
+  async function uploadImage(file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch("/api/upload", { method: "POST", body: formData });
+    const data = await res.json();
+
+    if (!res.ok || !data?.imagePath) {
+      throw new Error(data?.message || "Image upload failed.");
+    }
+
+    return data.imagePath as string;
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
+
+    try {
+      if (!selectedCategory) throw new Error("Please create/select a category first.");
+      if (!imageFile) throw new Error("Please choose a product image.");
+
+      const imagePath = await uploadImage(imageFile);
+
+      const cleanedVariants = await Promise.all(
+        variants
+          .filter((v) => v.label.trim() && Number(v.price) > 0)
+          .map(async (v) => {
+            const variantImage = v.imageFile ? await uploadImage(v.imageFile) : v.image.trim();
+
+            return {
+              label: v.label.trim(),
+              price: Number(v.price),
+              stock: safeStock(v.stock),
+              image: variantImage || null,
+            };
+          })
+      );
+
+      const payload = {
+        name: form.name.trim(),
+        price: Number(form.price),
+        compareAtPrice: form.compareAtPrice ? Number(form.compareAtPrice) : null,
+        image: imagePath,
+        category: selectedCategory.name,
+        subcategory: selectedSubcategory?.slug || "",
+        description: form.description.trim(),
+        stock: cleanedVariants.length > 0
+          ? cleanedVariants.reduce((sum, v) => sum + safeStock(String(v.stock)), 0)
+          : safeStock(form.stock),
+        isHotDeal: form.isHotDeal,
+        isUpcoming: form.isUpcoming,
+        badgeText: form.badgeText.trim() || null,
+        badgeTone: form.badgeTone,
+        variants: cleanedVariants,
+      };
+
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.message || "Failed to create product.");
+      }
+
+      router.push("/admin/products");
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-[#fcf8f6] px-4 py-10">
+      <div className="mx-auto max-w-6xl space-y-8">
+        <AdminNav />
+
+        <div className="rounded-[28px] border border-[#ead9d1] bg-white p-6 shadow-sm md:p-8">
+          <div className="mb-8 flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-semibold text-[#2e221d]">Add Product</h1>
+              <p className="mt-2 text-sm text-neutral-600">
+                Add product with discount, badge, stock, and optional variants.
+              </p>
+            </div>
+
+            <Link href="/admin/products" className="rounded-full border border-[#ead9d1] px-4 py-2 text-sm hover:bg-[#f8f3ef]">
+              Back Products
+            </Link>
+          </div>
+
+          {message ? (
+            <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              {message}
+            </div>
+          ) : null}
+
+          <form onSubmit={handleSubmit} className="grid gap-5">
+            <input name="name" value={form.name} onChange={handleChange} required className="w-full rounded-2xl border border-[#ead9d1] px-4 py-3 outline-none" placeholder="Product name" />
+
+            <div className="grid gap-5 md:grid-cols-3">
+              <input name="price" type="number" min="0" value={form.price} onChange={handleChange} required className="rounded-2xl border border-[#ead9d1] px-4 py-3 outline-none" placeholder="Current price" />
+              <input name="compareAtPrice" type="number" min="0" value={form.compareAtPrice} onChange={handleChange} className="rounded-2xl border border-[#ead9d1] px-4 py-3 outline-none" placeholder="Previous price" />
+              <input name="stock" type="number" min="0" value={form.stock} onChange={handleChange} className="rounded-2xl border border-[#ead9d1] px-4 py-3 outline-none" placeholder="Default stock" />
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              <select name="categoryId" value={form.categoryId} onChange={handleChange} required className="rounded-2xl border border-[#ead9d1] px-4 py-3 outline-none">
+                {categories.length === 0 ? (
+                  <option value="">No category found</option>
+                ) : (
+                  categories.map((category) => (
+                    <option key={category.id} value={category.id}>{category.name}</option>
+                  ))
+                )}
+              </select>
+
+              <select name="subcategoryId" value={form.subcategoryId} onChange={handleChange} className="rounded-2xl border border-[#ead9d1] px-4 py-3 outline-none">
+                {subcategories.length === 0 ? (
+                  <option value="">No subcategory</option>
+                ) : (
+                  subcategories.map((sub) => (
+                    <option key={sub.id} value={sub.id}>{sub.name}</option>
+                  ))
+                )}
+              </select>
+            </div>
+
+            <div className="grid gap-3 rounded-2xl border border-[#ead9d1] bg-[#fffaf7] p-4 md:grid-cols-2">
+              <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-white p-4 text-sm font-medium text-[#2e221d]">
+                <input name="isHotDeal" type="checkbox" checked={form.isHotDeal} onChange={handleChange} className="h-4 w-4" />
+                Mark as Hot Deal
+              </label>
+
+              <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-white p-4 text-sm font-medium text-[#2e221d]">
+                <input name="isUpcoming" type="checkbox" checked={form.isUpcoming} onChange={handleChange} className="h-4 w-4" />
+                Mark as Upcoming Product
+              </label>
+            </div>
+
+            <div className="grid gap-4 rounded-2xl border border-[#ead9d1] bg-[#fffaf7] p-4 md:grid-cols-[1fr_220px]">
+              <input name="badgeText" value={form.badgeText} onChange={handleChange} className="rounded-2xl border border-[#ead9d1] bg-white px-4 py-3 outline-none" placeholder="Badge: 20% OFF, New Year Sale" />
+
+              <select name="badgeTone" value={form.badgeTone} onChange={handleChange} className="rounded-2xl border border-[#ead9d1] bg-white px-4 py-3 outline-none">
+                <option value="sale">Sale Red</option>
+                <option value="new">New Green</option>
+                <option value="offer">Offer Orange</option>
+                <option value="hot">Hot Brown</option>
+                <option value="festival">Festival Purple</option>
+              </select>
+            </div>
+
+            <div className="rounded-2xl border border-[#ead9d1] bg-[#fffaf7] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-[#2e221d]">Product Variants</h2>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    Example: 100 ml, 300 ml, 500 ml, 1 kg, 250 gm. Add at least one row when product has size, ml, or gram.
+                  </p>
+                </div>
+
+                <button type="button" onClick={addVariant} className="rounded-full bg-[#2e221d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#7a5244]">
+                  Add Variant
+                </button>
+              </div>
+
+              {variants.length > 0 ? (
+                <div className="mt-4 grid gap-3">
+                  {variants.map((variant, index) => (
+                    <div key={index} className="grid gap-3 rounded-2xl bg-white p-3 md:grid-cols-[1fr_150px_120px_1fr_auto]">
+                      <input value={variant.label} onChange={(e) => updateVariant(index, "label", e.target.value)} className="rounded-2xl border border-[#ead9d1] px-4 py-3 outline-none" placeholder="Size/Label: 300 ml" />
+                      <input value={variant.price} onChange={(e) => updateVariant(index, "price", e.target.value)} type="number" min="0" className="rounded-2xl border border-[#ead9d1] px-4 py-3 outline-none" placeholder="Variant price" />
+                      <input value={variant.stock} onChange={(e) => updateVariant(index, "stock", e.target.value)} type="number" min="0" className="rounded-2xl border border-[#ead9d1] px-4 py-3 outline-none" placeholder="Stock" />
+                      <div className="grid gap-2">
+                        <input
+                          value={variant.image}
+                          onChange={(e) => updateVariant(index, "image", e.target.value)}
+                          className="rounded-2xl border border-[#ead9d1] px-4 py-3 outline-none"
+                          placeholder="Variant image URL/path optional"
+                        />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => updateVariantFile(index, e.target.files?.[0] || null)}
+                          className="rounded-2xl border border-[#ead9d1] bg-white px-3 py-2 text-xs"
+                        />
+                      </div>
+                      <button type="button" onClick={() => removeVariant(index)} className="rounded-full border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50">
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div>
+              <input type="file" accept="image/*" onChange={handleImageChange} required className="w-full rounded-2xl border border-[#ead9d1] px-4 py-3 outline-none" />
+              {previewUrl ? <img src={previewUrl} alt="Preview" className="mt-4 h-40 w-40 rounded-2xl object-cover" /> : null}
+            </div>
+
+            <textarea name="description" value={form.description} onChange={handleChange} rows={5} className="w-full rounded-2xl border border-[#ead9d1] px-4 py-3 outline-none" placeholder="Product description" />
+
+            <button type="submit" disabled={loading} className="rounded-full bg-[#2e221d] px-6 py-3 text-sm font-semibold text-white hover:bg-[#7a5244] disabled:opacity-60">
+              {loading ? "Saving..." : "Add Product"}
+            </button>
+          </form>
+        </div>
+      </div>
+    </main>
+  );
+}

@@ -1,0 +1,110 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+const slides = [
+  {
+    eyebrow: "Pure Beauty Collection",
+    title: "Discover Your Natural Glow",
+    subtitle:
+      "Cosmetics, skincare, perfumes, and daily essentials curated for a softer everyday routine.",
+    image: "/images/categories/cosmetics.jpg",
+    href: "/shop",
+  },
+  {
+    eyebrow: "New Arrivals",
+    title: "Fresh Products Just Added",
+    subtitle:
+      "Explore newly added skincare, haircare, cosmetics, and lifestyle essentials.",
+    image: "/images/categories/skincare.jpg",
+    href: "/shop",
+  },
+  {
+    eyebrow: "Top Picks",
+    title: "Picked for Pure Haven Customers",
+    subtitle:
+      "Browse selected products for your daily beauty and self-care needs.",
+    image: "/images/categories/perfume.jpg",
+    href: "/shop",
+  },
+];
+
+export default function EditorialPromoSection() {
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActive((prev) => (prev + 1) % slides.length);
+    }, 4000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return (
+    <section className="px-4 py-8 md:px-6 md:py-10 lg:px-8">
+      <div className="mx-auto max-w-7xl overflow-hidden rounded-[28px] md:rounded-[36px]">
+        <div
+          className="flex transition-transform duration-700 ease-out"
+          style={{ transform: `translateX(-${active * 100}%)` }}
+        >
+          {slides.map((slide) => (
+            <div key={slide.title} className="relative min-h-[360px] w-full shrink-0 md:min-h-[460px]">
+              <img
+                src={slide.image}
+                alt={slide.title}
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+
+              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/10" />
+
+              <div className="relative z-10 flex min-h-[360px] max-w-2xl flex-col justify-center px-6 py-10 text-white sm:px-10 md:min-h-[460px] md:px-14">
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-white/80">
+                  {slide.eyebrow}
+                </p>
+
+                <h2 className="mt-4 text-4xl font-semibold leading-tight sm:text-5xl md:text-6xl">
+                  {slide.title}
+                </h2>
+
+                <p className="mt-5 max-w-xl text-sm leading-7 text-white/85 sm:text-base md:text-lg">
+                  {slide.subtitle}
+                </p>
+
+                <div className="mt-8 flex flex-wrap items-center gap-4">
+                  <Link
+                    href={slide.href}
+                    className="inline-flex rounded-full bg-white px-7 py-3 text-sm font-semibold text-[#2f1e18] transition hover:bg-[#f7f1ec] sm:px-8 sm:py-3.5"
+                  >
+                    Shop Now
+                  </Link>
+
+                  <Link
+                    href="/shop"
+                    className="inline-flex rounded-full border border-white/40 bg-white/10 px-7 py-3 text-sm font-medium text-white backdrop-blur-sm transition hover:bg-white/20 sm:px-8 sm:py-3.5"
+                  >
+                    Browse Products
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="absolute left-1/2 z-20 mt-[-42px] flex -translate-x-1/2 gap-2">
+          {slides.map((_, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => setActive(index)}
+              className={`h-2.5 rounded-full transition-all ${
+                active === index ? "w-8 bg-white" : "w-2.5 bg-white/50"
+              }`}
+              aria-label={`Go to promo slide ${index + 1}`}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}

@@ -21,7 +21,7 @@ export default function Hero() {
           <div className="mt-7 flex flex-wrap items-center gap-4">
             <Link
               href="/shop"
-              className="inline-flex rounded-full bg-[#2e221d] px-7 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#7a5244]"
+              className="inline-flex rounded-none bg-[#2e221d] px-7 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#7a5244]"
             >
               Shop Now
             </Link>
@@ -36,7 +36,7 @@ export default function Hero() {
         </div>
 
         <div className="order-1 relative md:order-2">
-          <div className="overflow-hidden rounded-[36px] border border-[#ead9d1] bg-white shadow-[0_12px_40px_rgba(46,34,29,0.08)]">
+          <div className="overflow-hidden rounded-none border border-[#ead9d1] bg-white shadow-[0_12px_40px_rgba(46,34,29,0.08)]">
             <img
               src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=1200&auto=format&fit=crop"
               alt="Pure Haven BD hero"

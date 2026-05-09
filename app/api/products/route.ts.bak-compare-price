@@ -1,0 +1,194 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+function text(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function optionalText(value: unknown) {
+  const clean = text(value);
+  return clean.length > 0 ? clean : null;
+}
+
+function numberValue(value: unknown) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function safeStock(value: unknown) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(0, Math.floor(number)) : 0;
+}
+
+function boolValue(value: unknown) {
+  return value === true || value === "true";
+}
+
+function badgeToneValue(value: unknown) {
+  const tone = text(value).toLowerCase();
+  return ["sale", "new", "offer", "hot", "festival"].includes(tone)
+    ? tone
+    : "sale";
+}
+
+function validId(value: unknown) {
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = validId(searchParams.get("id"));
+
+    if (id) {
+      const product = await prisma.product.findUnique({
+        where: { id },
+      });
+
+      if (!product) {
+        return NextResponse.json(
+          { success: false, message: "Product not found." },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({ success: true, product });
+    }
+
+    const products = await prisma.product.findMany({
+      orderBy: [{ id: "desc" }],
+    });
+
+    return NextResponse.json({ success: true, products });
+  } catch (error) {
+    console.error("GET /api/products failed:", error);
+    return NextResponse.json(
+      { success: false, message: "Failed to load products." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+
+    const name = text(body.name);
+    const image = text(body.image);
+    const category = text(body.category);
+
+    if (!name || !image || !category) {
+      return NextResponse.json(
+        { success: false, message: "Name, image, and category are required." },
+        { status: 400 }
+      );
+    }
+
+    const product = await prisma.product.create({
+      data: {
+        name,
+        price: numberValue(body.price),
+        image,
+        category,
+        subcategory: optionalText(body.subcategory),
+        description: optionalText(body.description),
+        stock: safeStock(body.stock),
+        isHotDeal: boolValue(body.isHotDeal),
+        isUpcoming: boolValue(body.isUpcoming),
+        badgeText: optionalText(body.badgeText),
+        badgeTone: badgeToneValue(body.badgeTone),
+      },
+    });
+
+    return NextResponse.json({ success: true, product }, { status: 201 });
+  } catch (error) {
+    console.error("POST /api/products failed:", error);
+    return NextResponse.json(
+      { success: false, message: "Failed to create product." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(req: Request) {
+  try {
+    const body = await req.json();
+    const id = validId(body.id);
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, message: "Valid product id is required." },
+        { status: 400 }
+      );
+    }
+
+    const product = await prisma.product.update({
+      where: { id },
+      data: {
+        name: text(body.name),
+        price: numberValue(body.price),
+        image: text(body.image),
+        category: text(body.category),
+        subcategory: optionalText(body.subcategory),
+        description: optionalText(body.description),
+        stock: safeStock(body.stock),
+        isHotDeal: boolValue(body.isHotDeal),
+        isUpcoming: boolValue(body.isUpcoming),
+        badgeText: optionalText(body.badgeText),
+        badgeTone: badgeToneValue(body.badgeTone),
+      },
+    });
+
+    return NextResponse.json({ success: true, product });
+  } catch (error: any) {
+    console.error("PUT /api/products failed:", error);
+
+    if (error?.code === "P2025") {
+      return NextResponse.json(
+        { success: false, message: "Product not found." },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { success: false, message: "Failed to update product." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = validId(searchParams.get("id"));
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, message: "Valid product id is required." },
+        { status: 400 }
+      );
+    }
+
+    await prisma.product.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error("DELETE /api/products failed:", error);
+
+    if (error?.code === "P2025") {
+      return NextResponse.json(
+        { success: false, message: "Product not found." },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { success: false, message: "Failed to delete product." },
+      { status: 500 }
+    );
+  }
+}

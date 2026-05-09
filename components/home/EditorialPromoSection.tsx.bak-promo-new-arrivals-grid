@@ -1,0 +1,72 @@
+import Link from "next/link";
+
+const promos = [
+  {
+    label: "New Arrivals",
+    title: "Fresh Arrivals",
+    href: "/shop",
+    image: "/images/categories/cosmetics.jpg",
+  },
+  {
+    label: "Top Picks",
+    title: "Top Picks",
+    href: "/shop",
+    image: "/images/categories/skincare.jpg",
+  },
+];
+
+export default function EditorialPromoSection() {
+  return (
+    <section className="container-ph py-10">
+      <div className="mb-5 flex items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#8b5f4f]">
+            Explore
+          </p>
+          <h2 className="mt-2 text-3xl font-semibold text-[#2e221d]">
+            Featured Collections
+          </h2>
+        </div>
+
+        <Link
+          href="/shop"
+          className="hidden text-sm font-bold uppercase tracking-[0.22em] text-[#2e221d] hover:text-[#8b5f4f] md:inline-flex"
+        >
+          View all
+        </Link>
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-2">
+        {promos.map((promo) => (
+          <Link
+            key={promo.title}
+            href={promo.href}
+            className="group relative h-[260px] overflow-hidden rounded-[26px] border border-[#ead9d1] bg-[#2e221d] shadow-sm"
+          >
+            <img
+              src={promo.image}
+              alt={promo.title}
+              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            />
+
+            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/25 to-transparent" />
+
+            <div className="absolute left-7 top-1/2 max-w-[260px] -translate-y-1/2 text-white">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/80">
+                {promo.label}
+              </p>
+
+              <h3 className="mt-3 text-3xl font-semibold leading-tight">
+                {promo.title}
+              </h3>
+
+              <span className="mt-5 inline-flex rounded-full bg-white px-5 py-2 text-sm font-semibold text-[#2e221d] transition group-hover:bg-[#2e221d] group-hover:text-white">
+                Shop now
+              </span>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}

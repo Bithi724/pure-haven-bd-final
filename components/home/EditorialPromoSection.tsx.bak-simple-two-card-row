@@ -1,0 +1,129 @@
+import Link from "next/link";
+
+const newArrivals = [
+  {
+    title: "Fresh Beauty Collection",
+    subtitle: "Newly added cosmetics, skincare, and self-care picks.",
+    href: "/shop",
+    image: "/images/categories/cosmetics.jpg",
+  },
+  {
+    title: "Daily Care Essentials",
+    subtitle: "Fresh products for everyday skin and hair care.",
+    href: "/shop",
+    image: "/images/categories/skincare.jpg",
+  },
+];
+
+const topPicks = [
+  {
+    title: "Top Picks",
+    subtitle: "Handpicked products selected for Pure Haven BD customers.",
+    href: "/shop",
+    image: "/images/categories/haircare.jpg",
+  },
+  {
+    title: "Customer Favorites",
+    subtitle: "Popular products customers are checking right now.",
+    href: "/shop",
+    image: "/images/categories/perfume.jpg",
+  },
+];
+
+function PromoCard({
+  title,
+  subtitle,
+  href,
+  image,
+}: {
+  title: string;
+  subtitle: string;
+  href: string;
+  image: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group relative min-h-[260px] overflow-hidden rounded-[26px] border border-[#ead9d1] bg-[#2e221d] shadow-sm"
+    >
+      <div
+        className="absolute inset-0 bg-cover bg-center transition duration-500 group-hover:scale-105"
+        style={{ backgroundImage: `url('${image}')` }}
+      />
+
+      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-black/5" />
+
+      <div className="relative flex h-full min-h-[260px] flex-col justify-end p-7 text-white">
+        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/80">
+          Pure Haven BD
+        </p>
+
+        <h3 className="mt-3 text-2xl font-semibold md:text-3xl">{title}</h3>
+
+        <p className="mt-2 max-w-md text-sm leading-6 text-white/85">
+          {subtitle}
+        </p>
+
+        <span className="mt-5 inline-flex w-fit rounded-full bg-white px-5 py-2 text-sm font-semibold text-[#2e221d]">
+          Shop now
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+function PromoSection({
+  eyebrow,
+  title,
+  items,
+}: {
+  eyebrow: string;
+  title: string;
+  items: typeof newArrivals;
+}) {
+  return (
+    <section className="container-ph py-10">
+      <div className="mb-5 flex items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#7a5244]">
+            {eyebrow}
+          </p>
+          <h2 className="mt-2 text-3xl font-semibold text-[#2e221d]">
+            {title}
+          </h2>
+        </div>
+
+        <Link
+          href="/shop"
+          className="hidden text-sm font-bold uppercase tracking-[0.22em] text-[#2e221d] hover:text-[#7a5244] md:inline-flex"
+        >
+          View all
+        </Link>
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-2">
+        {items.map((item) => (
+          <PromoCard key={item.title} {...item} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export default function EditorialPromoSection() {
+  return (
+    <>
+      <PromoSection
+        eyebrow="New Arrivals"
+        title="Just Added"
+        items={newArrivals}
+      />
+
+      <PromoSection
+        eyebrow="Top Picks"
+        title="Featured Choices"
+        items={topPicks}
+      />
+    </>
+  );
+}

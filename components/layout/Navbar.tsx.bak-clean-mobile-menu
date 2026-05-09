@@ -1,0 +1,395 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import {
+  ChevronDown,
+  Heart,
+  Menu,
+  Search,
+  ShoppingCart,
+  User,
+  X,
+} from "lucide-react";
+import { useCart } from "@/components/cart/CartContext";
+import { useWishlist } from "@/components/wishlist/WishlistContext";
+import { useMobileUI } from "@/components/mobile/MobileUIContext";
+
+type Subcategory = {
+  id: number;
+  name: string;
+  slug: string;
+  isActive: boolean;
+};
+
+type Category = {
+  id: number;
+  name: string;
+  slug: string;
+  image?: string | null;
+  isActive: boolean;
+  subcategories: Subcategory[];
+};
+
+function ActionIconButton({
+  href,
+  label,
+  icon,
+  count,
+}: {
+  href: string;
+  label: string;
+  icon: ReactNode;
+  count?: number;
+}) {
+  const hasCount = typeof count === "number" && count > 0;
+
+  return (
+    <Link
+      href={href}
+      aria-label={label}
+      className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#ead9d1] bg-white text-[#2e221d] transition hover:bg-[#f8f3ef] sm:h-10 sm:w-10"
+    >
+      {icon}
+      {hasCount ? (
+        <span className="absolute -right-1 -top-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-[#2e221d] px-1 text-[10px] font-semibold leading-4 text-white sm:min-w-[18px]">
+          {count}
+        </span>
+      ) : null}
+    </Link>
+  );
+}
+
+export default function Navbar() {
+  const pathname = usePathname();
+  const { cartCount } = useCart();
+  const { wishlistCount } = useWishlist();
+  const { isMenuOpen, isSearchOpen, toggleMenu, toggleSearch, closeAll, closeMenu } =
+    useMobileUI();
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [openDesktopId, setOpenDesktopId] = useState<number | null>(null);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        const res = await fetch("/api/categories", { cache: "no-store" });
+        const data = await res.json();
+
+        if (res.ok && data?.success && Array.isArray(data.categories)) {
+          setCategories(data.categories);
+        }
+      } catch {
+        setCategories([]);
+      }
+    }
+
+    loadCategories();
+  }, []);
+
+  useEffect(() => {
+    const syncAdminState = () => {
+      try {
+        setIsAdminLoggedIn(localStorage.getItem("ph_admin_logged_in") === "true");
+      } catch {
+        setIsAdminLoggedIn(false);
+      }
+    };
+
+    syncAdminState();
+
+    window.addEventListener("storage", syncAdminState);
+    window.addEventListener("focus", syncAdminState);
+    window.addEventListener("ph-admin-auth-changed", syncAdminState as EventListener);
+
+    return () => {
+      window.removeEventListener("storage", syncAdminState);
+      window.removeEventListener("focus", syncAdminState);
+      window.removeEventListener("ph-admin-auth-changed", syncAdminState as EventListener);
+
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    setOpenDesktopId(null);
+    closeAll();
+  }, [pathname, closeAll]);
+
+  function openDesktopMenu(id: number) {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    setOpenDesktopId(id);
+  }
+
+  function scheduleDesktopClose() {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+
+    closeTimerRef.current = setTimeout(() => {
+      setOpenDesktopId(null);
+    }, 180);
+  }
+
+  return (
+    <header className="sticky top-0 z-[100] border-b border-[#ead9d1] bg-white">
+      <div className="container-ph py-2 lg:py-3">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 lg:gap-3">
+          <div className="flex items-center justify-self-start">
+            <button
+              type="button"
+              onClick={toggleMenu}
+              aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#ead9d1] bg-white text-[#2e221d] transition hover:bg-[#f8f3ef]"
+            >
+              {isMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </button>
+          </div>
+
+          <Link href="/" className="justify-self-center text-center">
+            <div className="text-lg font-semibold tracking-[0.16em] text-[#2e221d] sm:text-xl lg:text-2xl lg:tracking-[0.18em]">
+              PURE
+            </div>
+            <div className="text-[9px] tracking-[0.28em] text-neutral-500 sm:text-[10px] lg:text-[11px] lg:tracking-[0.34em]">
+              HAVEN BD
+            </div>
+          </Link>
+
+          <div className="flex items-center justify-end gap-2 justify-self-end">
+            <button
+              type="button"
+              onClick={toggleSearch}
+              aria-label={isSearchOpen ? "Close search" : "Open search"}
+              className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition sm:h-10 sm:w-10 ${
+                isSearchOpen
+                  ? "border-[#2e221d] bg-[#2e221d] text-white"
+                  : "border-[#ead9d1] bg-white text-[#2e221d] hover:bg-[#f8f3ef]"
+              }`}
+            >
+              <Search className="h-4 w-4" />
+            </button>
+
+            <div className="hidden items-center gap-2 lg:flex">
+              <ActionIconButton
+                href="/wishlist"
+                label="Wishlist"
+                icon={<Heart className="h-[18px] w-[18px]" />}
+                count={wishlistCount}
+              />
+              <ActionIconButton
+                href="/cart"
+                label="Cart"
+                icon={<ShoppingCart className="h-[18px] w-[18px]" />}
+                count={cartCount}
+              />
+              <ActionIconButton
+                href={isAdminLoggedIn ? "/admin" : "/login"}
+                label={isAdminLoggedIn ? "Dashboard" : "Account"}
+                icon={<User className="h-[18px] w-[18px]" />}
+              />
+            </div>
+
+            <div className="flex items-center gap-2 lg:hidden">
+              <ActionIconButton
+                href="/cart"
+                label="Cart"
+                icon={<ShoppingCart className="h-[18px] w-[18px]" />}
+                count={cartCount}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {categories.length > 0 ? (
+        <nav className="hidden border-t border-[#f1e4de] bg-white lg:block">
+          <div className="container-ph flex items-center justify-center gap-1 py-2">
+            <Link
+              href="/shop"
+              className="rounded-full px-4 py-2 text-sm font-medium text-[#2e221d] hover:bg-[#f8f3ef]"
+            >
+              All Products
+            </Link>
+
+            {categories.map((category) => (
+              <div
+                key={category.id}
+                className="relative"
+                onMouseEnter={() => openDesktopMenu(category.id)}
+                onMouseLeave={scheduleDesktopClose}
+              >
+                <Link
+                  href={`/shop?category=${category.slug}`}
+                  className="inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium text-[#2e221d] hover:bg-[#f8f3ef]"
+                >
+                  {category.name}
+                  {category.subcategories.length > 0 ? (
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  ) : null}
+                </Link>
+
+                {openDesktopId === category.id && category.subcategories.length > 0 ? (
+                  <div className="absolute left-1/2 top-full z-[200] mt-2 w-[280px] -translate-x-1/2 rounded-[24px] border border-[#ead9d1] bg-white p-3 shadow-xl">
+                    <div className="grid gap-1">
+                      {category.subcategories.map((subcategory) => (
+                        <Link
+                          key={subcategory.id}
+                          href={`/shop?category=${category.slug}&subcategory=${subcategory.slug}`}
+                          className="rounded-2xl px-4 py-2 text-sm text-[#2e221d] hover:bg-[#f8f3ef]"
+                        >
+                          {subcategory.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ))}
+
+            <Link
+              href="/track-order"
+              className="rounded-full px-4 py-2 text-sm font-medium text-[#2e221d] hover:bg-[#f8f3ef]"
+            >
+              Track Order
+            </Link>
+          </div>
+        </nav>
+      ) : null}
+
+      {isSearchOpen ? (
+        <div className="border-t border-[#f1e4de] bg-white">
+          <div className="container-ph py-2">
+            <form action="/shop" method="GET" role="search" className="mx-auto max-w-2xl">
+              <label className="sr-only" htmlFor="site-search">
+                Search products
+              </label>
+              <div className="flex items-center gap-2 rounded-full border border-[#ead9d1] bg-[#fffaf7] px-4 py-2">
+                <Search className="h-4 w-4 text-neutral-500" />
+                <input
+                  id="site-search"
+                  name="q"
+                  type="search"
+                  placeholder="Search products..."
+                  className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="rounded-full bg-[#2e221d] px-4 py-2 text-xs font-semibold text-white hover:bg-[#7a5244]"
+                >
+                  Search
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {isMenuOpen ? (
+        <div className="fixed inset-0 z-[9999]">
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={closeMenu}
+            className="absolute inset-0 bg-black/40"
+          />
+
+          <aside className="absolute left-0 top-0 h-full w-[86%] max-w-[390px] overflow-y-auto bg-white p-5 shadow-2xl">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <p className="text-lg font-semibold tracking-[0.16em] text-[#2e221d]">
+                  PURE
+                </p>
+                <p className="text-[10px] tracking-[0.3em] text-neutral-500">
+                  HAVEN BD
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={closeMenu}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#ead9d1]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="grid gap-2">
+              <Link
+                href="/shop"
+                onClick={closeMenu}
+                className="rounded-2xl bg-[#2e221d] px-4 py-3 text-sm font-semibold text-white"
+              >
+                All Products
+              </Link>
+
+              {categories.map((category) => (
+                <div key={category.id} className="rounded-2xl border border-[#ead9d1] p-3">
+                  <Link
+                    href={`/shop?category=${category.slug}`}
+                    onClick={closeMenu}
+                    className="block font-semibold text-[#2e221d]"
+                  >
+                    {category.name}
+                  </Link>
+
+                  {category.subcategories.length > 0 ? (
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      {category.subcategories.map((subcategory) => (
+                        <Link
+                          key={subcategory.id}
+                          href={`/shop?category=${category.slug}&subcategory=${subcategory.slug}`}
+                          onClick={closeMenu}
+                          className="rounded-xl bg-[#f8f3ef] px-3 py-2 text-xs text-[#2e221d]"
+                        >
+                          {subcategory.name}
+                        </Link>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+
+              <Link
+                href="/wishlist"
+                onClick={closeMenu}
+                className="rounded-2xl border border-[#ead9d1] px-4 py-3 text-sm font-semibold"
+              >
+                Wishlist
+              </Link>
+
+              <Link
+                href="/cart"
+                onClick={closeMenu}
+                className="rounded-2xl border border-[#ead9d1] px-4 py-3 text-sm font-semibold"
+              >
+                Cart
+              </Link>
+
+              <Link
+                href="/track-order"
+                onClick={closeMenu}
+                className="rounded-2xl border border-[#ead9d1] px-4 py-3 text-sm font-semibold"
+              >
+                Track Order
+              </Link>
+
+              <Link
+                href={isAdminLoggedIn ? "/admin" : "/login"}
+                onClick={closeMenu}
+                className="rounded-2xl border border-[#ead9d1] px-4 py-3 text-sm font-semibold"
+              >
+                {isAdminLoggedIn ? "Dashboard" : "Account"}
+              </Link>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+    </header>
+  );
+}

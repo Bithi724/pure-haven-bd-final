@@ -1,0 +1,50 @@
+import TopBar from "@/components/layout/TopBar";
+import Navbar from "@/components/layout/Navbar";
+import Hero from "@/components/home/Hero";
+import EditorialPromoSection from "@/components/home/EditorialPromoSection";
+import CategorySection from "@/components/home/CategorySection";
+import ProductSection from "@/components/home/ProductSection";
+import DealsBanner from "@/components/home/DealsBanner";
+import BrandsSection from "@/components/home/BrandsSection";
+import TrustSection from "@/components/home/TrustSection";
+import Footer from "@/components/layout/Footer";
+import { getProducts } from "@/lib/getProducts";
+
+export default async function HomePage() {
+  const allProducts = await getProducts();
+
+  const featuredProducts = [...allProducts]
+    .sort((a, b) => {
+      const aTime = new Date(a.createdAt ?? 0).getTime();
+      const bTime = new Date(b.createdAt ?? 0).getTime();
+      return bTime - aTime;
+    })
+    .slice(0, 8);
+
+  return (
+    <>
+      <TopBar />
+      <Navbar />
+
+      {/* Hero slider */}
+      <Hero />
+
+      {/* Promo section ঠিক Hero এর নিচে */}
+      <EditorialPromoSection />
+
+      {/* এরপর বাকিগুলো */}
+      <CategorySection />
+
+      <ProductSection
+        title="Featured Products"
+        subtitle="Discover our newest arrivals and customer favourites."
+        products={featuredProducts}
+      />
+
+      <DealsBanner />
+      <BrandsSection />
+      <TrustSection />
+      <Footer />
+    </>
+  );
+}

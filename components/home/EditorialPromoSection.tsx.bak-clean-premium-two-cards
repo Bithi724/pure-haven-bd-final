@@ -1,0 +1,59 @@
+import Link from "next/link";
+
+const promos = [
+  {
+    label: "New Arrivals",
+    title: "New Arrivals",
+    subtitle: "Freshly added products for your daily beauty routine.",
+    href: "/shop",
+    image: "/images/categories/cosmetics.jpg",
+  },
+  {
+    label: "Top Picks",
+    title: "Top Picks",
+    subtitle: "Handpicked products selected for Pure Haven BD customers.",
+    href: "/shop",
+    image: "/images/categories/skincare.jpg",
+  },
+];
+
+export default function EditorialPromoSection() {
+  return (
+    <section className="container-ph py-10">
+      <div className="grid gap-5 md:grid-cols-2">
+        {promos.map((promo) => (
+          <Link
+            key={promo.title}
+            href={promo.href}
+            className="group relative h-[230px] overflow-hidden rounded-[22px] border border-[#ead9d1] bg-[#2e221d] shadow-sm"
+          >
+            <div
+              className="absolute inset-0 bg-cover bg-center transition duration-500 group-hover:scale-105"
+              style={{ backgroundImage: `url('${promo.image}')` }}
+            />
+
+            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-black/5" />
+
+            <div className="relative flex h-full flex-col justify-end p-7 text-white">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/80">
+                {promo.label}
+              </p>
+
+              <h2 className="mt-2 text-3xl font-semibold">
+                {promo.title}
+              </h2>
+
+              <p className="mt-2 max-w-sm text-sm leading-6 text-white/85">
+                {promo.subtitle}
+              </p>
+
+              <span className="mt-5 inline-flex w-fit rounded-full bg-white px-5 py-2 text-sm font-semibold text-[#2e221d]">
+                Shop now
+              </span>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}

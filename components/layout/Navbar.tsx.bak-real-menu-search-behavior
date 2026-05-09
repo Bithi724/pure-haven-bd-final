@@ -1,0 +1,105 @@
+﻿"use client";
+
+import { useEffect, useState } from "react";
+
+type Category = {
+  id: number | string;
+  name: string;
+  slug: string;
+};
+
+export default function Navbar() {
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        const res = await fetch("/api/categories", { cache: "no-store" });
+        const data = await res.json();
+
+        if (res.ok && data?.success && Array.isArray(data.categories)) {
+          setCategories(data.categories);
+        }
+      } catch {
+        setCategories([]);
+      }
+    }
+
+    loadCategories();
+  }, []);
+
+  return (
+    <header className="sticky top-0 z-[999] border-b border-[#ead9d1] bg-[#fffaf7]">
+      <div className="container-ph">
+        <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4 py-4">
+          <a
+            href="/shop"
+            className="grid h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-3xl text-[#2e221d]"
+            aria-label="Menu"
+          >
+            ☰
+          </a>
+
+          <a href="/" className="block text-center">
+            <div className="text-3xl font-semibold tracking-[0.35em] text-[#2e221d]">
+              PURE
+            </div>
+            <div className="mt-1 text-xs tracking-[0.45em] text-[#7a5244]">
+              HAVEN BD
+            </div>
+          </a>
+
+          <div className="flex items-center gap-2">
+            <a
+              href="/shop?focus=search"
+              className="grid h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-2xl"
+              aria-label="Search"
+            >
+              🔍
+            </a>
+
+            <a
+              href="/wishlist"
+              className="grid h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-2xl"
+              aria-label="Wishlist"
+            >
+              ♡
+            </a>
+
+            <a
+              href="/cart"
+              className="grid h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-2xl"
+              aria-label="Cart"
+            >
+              🛒
+            </a>
+
+            <a
+              href="/login"
+              className="grid h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-2xl"
+              aria-label="Account"
+            >
+              ♙
+            </a>
+          </div>
+        </div>
+
+        <nav className="hidden items-center justify-center gap-7 border-t border-[#ead9d1] py-4 text-sm text-[#2e221d] md:flex">
+          <a href="/shop">All Products</a>
+
+          {categories.map((category) => (
+            <a
+              key={category.id}
+              href={`/shop?category=${encodeURIComponent(category.slug)}`}
+              className="hover:text-[#7a5244]"
+            >
+              {category.name} <span className="text-xs">⌄</span>
+            </a>
+          ))}
+
+          <a href="/track-order">Track Order</a>
+        </nav>
+      </div>
+    </header>
+  );
+}

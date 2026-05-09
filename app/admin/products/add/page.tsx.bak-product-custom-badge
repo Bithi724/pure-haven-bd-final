@@ -1,0 +1,406 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import AdminNav from "@/components/admin/AdminNav";
+
+type Subcategory = {
+  id: number;
+  name: string;
+  slug: string;
+  isActive: boolean;
+};
+
+type Category = {
+  id: number;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  subcategories: Subcategory[];
+};
+
+function getSafeStock(stock: unknown) {
+  const value = Number(stock);
+  return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+}
+
+export default function AddProductPage() {
+  const router = useRouter();
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [form, setForm] = useState({
+    name: "",
+    price: "",
+    categoryId: "",
+    subcategoryId: "",
+    description: "",
+    stock: "",
+    isHotDeal: false,
+    isUpcoming: false,
+  });
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [categoryLoading, setCategoryLoading] = useState(true);
+  const [message, setMessage] = useState("");
+
+  async function loadCategories() {
+    try {
+      setCategoryLoading(true);
+
+      const res = await fetch("/api/categories", {
+        cache: "no-store",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.message || "Failed to load categories.");
+      }
+
+      const list: Category[] = Array.isArray(data.categories)
+        ? data.categories
+        : [];
+
+      setCategories(list);
+
+      if (list.length > 0) {
+        const firstCategory = list[0];
+        const firstSubcategory = firstCategory.subcategories[0];
+
+        setForm((prev) => ({
+          ...prev,
+          categoryId: prev.categoryId || String(firstCategory.id),
+          subcategoryId:
+            prev.subcategoryId || (firstSubcategory ? String(firstSubcategory.id) : ""),
+        }));
+      }
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Failed to load categories."
+      );
+    } finally {
+      setCategoryLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  const selectedCategory = useMemo(() => {
+    return categories.find((item) => String(item.id) === form.categoryId);
+  }, [categories, form.categoryId]);
+
+  const subcategoryList = selectedCategory?.subcategories || [];
+
+  const selectedSubcategory = useMemo(() => {
+    return subcategoryList.find((item) => String(item.id) === form.subcategoryId);
+  }, [subcategoryList, form.subcategoryId]);
+
+  function handleChange(
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) {
+    const target = e.target as HTMLInputElement;
+    const { name, value } = target;
+
+    if (target.type === "checkbox") {
+      setForm((prev) => ({
+        ...prev,
+        [name]: target.checked,
+      }));
+      return;
+    }
+
+    if (name === "categoryId") {
+      const nextCategory = categories.find((item) => String(item.id) === value);
+      const firstSubcategory = nextCategory?.subcategories[0];
+
+      setForm((prev) => ({
+        ...prev,
+        categoryId: value,
+        subcategoryId: firstSubcategory ? String(firstSubcategory.id) : "",
+      }));
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  }
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setImageFile(file);
+    setPreviewUrl(file ? URL.createObjectURL(file) : "");
+  }
+
+  async function uploadImageAndGetPath(file: File) {
+    const uploadData = new FormData();
+    uploadData.append("file", file);
+
+    const uploadRes = await fetch("/api/upload", {
+      method: "POST",
+      body: uploadData,
+    });
+
+    const uploadResult = await uploadRes.json();
+
+    if (!uploadRes.ok || !uploadResult?.imagePath) {
+      throw new Error(uploadResult?.message || "Image upload failed");
+    }
+
+    return uploadResult.imagePath as string;
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
+
+    try {
+      if (!imageFile) {
+        throw new Error("Please choose an image.");
+      }
+
+      if (!selectedCategory) {
+        throw new Error("Please choose a category.");
+      }
+
+      const imagePath = await uploadImageAndGetPath(imageFile);
+
+      const payload = {
+        name: form.name.trim(),
+        price: Number(form.price),
+        image: imagePath,
+        category: selectedCategory.name,
+        subcategory: selectedSubcategory?.slug || "",
+        description: form.description.trim(),
+        stock: getSafeStock(form.stock),
+        isHotDeal: form.isHotDeal,
+        isUpcoming: form.isUpcoming,
+      };
+
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(result?.message || "Failed to create product.");
+      }
+
+      setMessage("Product added successfully.");
+      router.push("/admin/products");
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-[#fcf8f6] px-4 py-10">
+      <div className="mx-auto max-w-6xl space-y-8">
+        <AdminNav />
+
+        <div className="rounded-none border border-[#ead9d1] bg-white p-6 shadow-sm md:p-8">
+          <div className="mb-8 flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-semibold text-[#2e221d]">
+                Add Product
+              </h1>
+              <p className="mt-2 text-sm text-neutral-600">
+                Create a product using admin-managed category and subcategory.
+              </p>
+            </div>
+
+            <Link
+              href="/admin/products"
+              className="rounded-none border border-[#ead9d1] px-4 py-2 text-sm hover:bg-[#f8f3ef]"
+            >
+              Back Products
+            </Link>
+          </div>
+
+          {message ? (
+            <div className="mb-5 rounded-none border border-[#ead9d1] bg-[#fffaf7] p-4 text-sm text-[#2e221d]">
+              {message}
+            </div>
+          ) : null}
+
+          <form onSubmit={handleSubmit} className="grid gap-5">
+            <div>
+              <label className="mb-2 block text-sm font-medium">
+                Product Name
+              </label>
+              <input
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                required
+                className="w-full rounded-none border border-[#ead9d1] px-4 py-3 outline-none"
+                placeholder="Product name"
+              />
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-medium">Price</label>
+                <input
+                  name="price"
+                  type="number"
+                  min="0"
+                  value={form.price}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-none border border-[#ead9d1] px-4 py-3 outline-none"
+                  placeholder="Price"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium">Stock</label>
+                <input
+                  name="stock"
+                  type="number"
+                  min="0"
+                  value={form.stock}
+                  onChange={handleChange}
+                  className="w-full rounded-none border border-[#ead9d1] px-4 py-3 outline-none"
+                  placeholder="Stock"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-medium">
+                  Category
+                </label>
+                <select
+                  name="categoryId"
+                  value={form.categoryId}
+                  onChange={handleChange}
+                  disabled={categoryLoading || categories.length === 0}
+                  className="w-full rounded-none border border-[#ead9d1] px-4 py-3 outline-none"
+                  required
+                >
+                  {categories.length === 0 ? (
+                    <option value="">No category found</option>
+                  ) : (
+                    categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium">
+                  Subcategory
+                </label>
+                <select
+                  name="subcategoryId"
+                  value={form.subcategoryId}
+                  onChange={handleChange}
+                  className="w-full rounded-none border border-[#ead9d1] px-4 py-3 outline-none"
+                >
+                  {subcategoryList.length === 0 ? (
+                    <option value="">No subcategory</option>
+                  ) : (
+                    subcategoryList.map((subcategory) => (
+                      <option key={subcategory.id} value={subcategory.id}>
+                        {subcategory.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid gap-3 rounded-none border border-[#ead9d1] bg-[#fffaf7] p-4 md:grid-cols-2">
+              <label className="flex cursor-pointer items-center gap-3 rounded-none bg-white p-4 text-sm font-medium text-[#2e221d]">
+                <input
+                  name="isHotDeal"
+                  type="checkbox"
+                  checked={Boolean(form.isHotDeal)}
+                  onChange={handleChange}
+                  className="h-4 w-4"
+                />
+                Mark as Hot Deal
+              </label>
+
+              <label className="flex cursor-pointer items-center gap-3 rounded-none bg-white p-4 text-sm font-medium text-[#2e221d]">
+                <input
+                  name="isUpcoming"
+                  type="checkbox"
+                  checked={Boolean(form.isUpcoming)}
+                  onChange={handleChange}
+                  className="h-4 w-4"
+                />
+                Mark as Upcoming Product
+              </label>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium">
+                Product Image
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                required
+                className="w-full rounded-none border border-[#ead9d1] px-4 py-3 outline-none"
+              />
+
+              {previewUrl ? (
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="mt-4 h-40 w-40 rounded-none object-cover"
+                />
+              ) : null}
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium">
+                Description
+              </label>
+              <textarea
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                rows={5}
+                className="w-full rounded-none border border-[#ead9d1] px-4 py-3 outline-none"
+                placeholder="Product description"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || categoryLoading || categories.length === 0}
+              className="rounded-none bg-[#2e221d] px-6 py-3 text-sm font-semibold text-white hover:bg-[#7a5244] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? "Saving..." : "Add Product"}
+            </button>
+          </form>
+        </div>
+      </div>
+    </main>
+  );
+}

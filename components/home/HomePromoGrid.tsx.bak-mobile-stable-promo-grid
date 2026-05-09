@@ -1,0 +1,167 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+
+type Product = {
+  id: number;
+  name: string;
+  price: number;
+  compareAtPrice?: number | null;
+  image: string;
+  isHotDeal?: boolean;
+  badgeText?: string | null;
+  createdAt?: string;
+};
+
+type HomePromo = {
+  id: string;
+  label: string;
+  title: string;
+  image: string;
+  href: string;
+  isActive: boolean;
+  sortOrder: number;
+};
+
+const fallbackWide: HomePromo = {
+  id: "fallback-wide",
+  label: "Explore Now",
+  title: "Top Picks",
+  image: "/images/categories/cosmetics.jpg",
+  href: "/shop",
+  isActive: true,
+  sortOrder: 1,
+};
+
+function newestFirst(a: Product, b: Product) {
+  const at = a.createdAt ? new Date(a.createdAt).getTime() : a.id;
+  const bt = b.createdAt ? new Date(b.createdAt).getTime() : b.id;
+  return bt - at;
+}
+
+export default function HomePromoGrid() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [wide, setWide] = useState<HomePromo>(fallbackWide);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [productRes, wideRes] = await Promise.all([
+          fetch("/api/products", { cache: "no-store" }),
+          fetch("/api/home-promos?kind=wide", { cache: "no-store" }),
+        ]);
+
+        const productData = await productRes.json();
+        const wideData = await wideRes.json();
+
+        if (productRes.ok && productData?.success && Array.isArray(productData.products)) {
+          setProducts(productData.products);
+        }
+
+        if (wideRes.ok && wideData?.success && Array.isArray(wideData.items)) {
+          const activeWide = wideData.items
+            .filter((item: HomePromo) => item.isActive)
+            .sort((a: HomePromo, b: HomePromo) => a.sortOrder - b.sortOrder);
+
+          if (activeWide[0]) setWide(activeWide[0]);
+        }
+      } catch {}
+    }
+
+    loadData();
+  }, []);
+
+  const newestProduct = useMemo(() => {
+    return [...products].sort(newestFirst)[0] || null;
+  }, [products]);
+
+  const hotDealProduct = useMemo(() => {
+    return (
+      products.find((p) => p.isHotDeal) ||
+      products.find((p) => Number(p.compareAtPrice || 0) > Number(p.price || 0)) ||
+      products.find((p) => (p.badgeText || "").toLowerCase().includes("deal")) ||
+      null
+    );
+  }, [products]);
+
+  const newArrivalImage = newestProduct?.image || "/images/categories/skincare.jpg";
+  const hotDealImage = hotDealProduct?.image || "/images/categories/haircare.jpg";
+
+  return (
+    <section className="bg-[#fcf8f6] px-3 py-4 md:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-4">
+        <Link
+          href={wide.href || "/shop"}
+          className="group relative block h-[170px] overflow-hidden rounded-[18px] bg-[#2e221d] shadow-sm sm:h-[230px] md:h-[280px]"
+        >
+          <img
+            src={wide.image}
+            alt={wide.title}
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          />
+
+          <div className="absolute inset-0 bg-black/15" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+
+          <div className="absolute inset-0 flex items-center justify-center text-center text-white">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/80 sm:text-xs">
+                {wide.label || "Explore Now"}
+              </p>
+              <h2 className="mt-2 text-4xl font-black uppercase tracking-tight sm:text-6xl md:text-7xl">
+                {wide.title || "Top Picks"}
+              </h2>
+            </div>
+          </div>
+        </Link>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Link
+            href="/shop"
+            className="group relative aspect-square overflow-hidden rounded-[18px] bg-[#2e221d] shadow-sm"
+          >
+            <img
+              src={newArrivalImage}
+              alt="New Arrivals"
+              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            />
+
+            <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
+
+            <div className="absolute inset-x-3 bottom-4 text-center text-white">
+              <h3 className="text-xl font-black leading-tight sm:text-3xl">
+                New Arrivals
+              </h3>
+              <p className="mt-2 line-clamp-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/85 sm:text-xs">
+                {newestProduct?.name || "Fresh Just In"}
+              </p>
+            </div>
+          </Link>
+
+          <Link
+            href="/shop"
+            className="group relative aspect-square overflow-hidden rounded-[18px] bg-[#2e221d] shadow-sm"
+          >
+            <img
+              src={hotDealImage}
+              alt="Hot Deals"
+              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            />
+
+            <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
+
+            <div className="absolute inset-x-3 bottom-4 text-center text-white">
+              <h3 className="text-xl font-black leading-tight sm:text-3xl">
+                Hot Deals
+              </h3>
+              <p className="mt-2 line-clamp-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/85 sm:text-xs">
+                {hotDealProduct?.name || "Special Offers"}
+              </p>
+            </div>
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}

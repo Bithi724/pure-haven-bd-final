@@ -42,6 +42,16 @@ function normalizeNumber(value: unknown, fallback = 0) {
   return Number.isFinite(num) ? num : fallback;
 }
 
+function normalizePositiveInt(value: unknown, fallback = 1) {
+  const num = Number(value);
+  return Number.isFinite(num) ? Math.max(1, Math.floor(num)) : fallback;
+}
+
+function normalizeProductId(value: unknown) {
+  const num = Number(value);
+  return Number.isInteger(num) && num > 0 ? num : null;
+}
+
 function sanitizePhone(value: string) {
   return String(value || "").replace(/\D/g, "");
 }
@@ -131,42 +141,25 @@ export async function GET(req: NextRequest) {
         );
       }
 
+      const normalizedOrderId = orderId.trim();
+      const normalizedPhone = sanitizePhone(phone);
+
       const matchedOrder = await prisma.order.findFirst({
         where: {
-          orderId: orderId.trim(),
-          customerPhone: {
-            equals: sanitizePhone(phone),
-          },
+          orderId: normalizedOrderId,
+          customerPhone: normalizedPhone,
         },
         include: { items: true },
       });
 
       if (!matchedOrder) {
-        const fallbackOrder = await prisma.order.findFirst({
-          where: {
-            orderId: orderId.trim(),
+        return NextResponse.json(
+          {
+            success: false,
+            message: "No matching order found.",
           },
-          include: { items: true },
-        });
-
-        const samePhone =
-          fallbackOrder &&
-          sanitizePhone(fallbackOrder.customerPhone) === sanitizePhone(phone);
-
-        if (!samePhone) {
-          return NextResponse.json(
-            {
-              success: false,
-              message: "No matching order found.",
-            },
-            { status: 404 }
-          );
-        }
-
-        return NextResponse.json({
-          success: true,
-          order: mapOrder(fallbackOrder),
-        });
+          { status: 404 }
+        );
       }
 
       return NextResponse.json({
@@ -199,7 +192,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as OrderBody;
 
     const customerName = normalizeString(body.customer?.name);
-    const customerPhone = normalizeString(body.customer?.phone);
+    const customerPhone = sanitizePhone(normalizeString(body.customer?.phone));
     const customerCity = normalizeString(body.customer?.city);
     const customerAddress = normalizeString(body.customer?.address);
 
@@ -212,6 +205,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (customerPhone.length < 11) {
+      return NextResponse.json(
+        { success: false, message: "A valid phone number is required." },
+        { status: 400 }
+      );
+    }
+
     if (items.length === 0) {
       return NextResponse.json(
         { success: false, message: "Order items are required." },
@@ -219,41 +219,87 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const preparedItems = items.map((item) => ({
+      productId: normalizeProductId(item.productId ?? item.id),
+      name: normalizeString(item.name),
+      price: normalizeNumber(item.price, 0),
+      image: normalizeString(item.image) || "/uploads/placeholder-product.png",
+      category: normalizeString(item.category) || "Uncategorized",
+      quantity: normalizePositiveInt(item.quantity, 1),
+    }));
+
+    const invalidItem = preparedItems.find(
+      (item) => !item.name || item.price < 0 || item.quantity < 1
+    );
+
+    if (invalidItem) {
+      return NextResponse.json(
+        { success: false, message: "One or more order items are invalid." },
+        { status: 400 }
+      );
+    }
+
     const orderId = generateOrderId();
 
-    const order = await prisma.order.create({
-      data: {
-        orderId,
-        customerName,
-        customerPhone,
-        customerCity,
-        customerAddress,
-        subtotal: normalizeNumber(body.subtotal, 0),
-        deliveryFee: normalizeNumber(body.deliveryFee, 0),
-        total: normalizeNumber(body.total, 0),
-        status: normalizeString(body.status) || "pending",
-        paymentMethod: normalizeString(body.paymentMethod) || "Cash on Delivery",
-        paymentStatus: normalizeString(body.paymentStatus) || "pending",
-        paymentProvider: normalizeString(body.paymentDetails?.provider) || null,
-        paymentSenderNumber:
-          normalizeString(body.paymentDetails?.senderNumber) || null,
-        paymentTrxId: normalizeString(body.paymentDetails?.trxId) || null,
-        items: {
-          create: items.map((item) => ({
-            productId:
-              item.productId !== undefined && item.productId !== null
-                ? Number(item.productId)
-                : null,
-            name: normalizeString(item.name),
-            price: normalizeNumber(item.price, 0),
-            image:
-              normalizeString(item.image) || "/uploads/placeholder-product.png",
-            category: normalizeString(item.category) || "Uncategorized",
-            quantity: Math.max(1, Math.floor(normalizeNumber(item.quantity, 1))),
-          })),
+    const order = await prisma.$transaction(async (tx) => {
+      for (const item of preparedItems) {
+        if (!item.productId) continue;
+
+        const product = await tx.product.findUnique({
+          where: { id: item.productId },
+        });
+
+        if (!product) {
+          throw new Error(`${item.name} is no longer available.`);
+        }
+
+        if (product.stock < item.quantity) {
+          throw new Error(
+            `${product.name} has only ${product.stock} item${
+              product.stock === 1 ? "" : "s"
+            } available.`
+          );
+        }
+      }
+
+      const createdOrder = await tx.order.create({
+        data: {
+          orderId,
+          customerName,
+          customerPhone,
+          customerCity,
+          customerAddress,
+          subtotal: normalizeNumber(body.subtotal, 0),
+          deliveryFee: normalizeNumber(body.deliveryFee, 0),
+          total: normalizeNumber(body.total, 0),
+          status: normalizeString(body.status) || "pending",
+          paymentMethod: normalizeString(body.paymentMethod) || "Cash on Delivery",
+          paymentStatus: normalizeString(body.paymentStatus) || "pending",
+          paymentProvider: normalizeString(body.paymentDetails?.provider) || null,
+          paymentSenderNumber:
+            sanitizePhone(normalizeString(body.paymentDetails?.senderNumber)) || null,
+          paymentTrxId: normalizeString(body.paymentDetails?.trxId) || null,
+          items: {
+            create: preparedItems,
+          },
         },
-      },
-      include: { items: true },
+        include: { items: true },
+      });
+
+      for (const item of preparedItems) {
+        if (!item.productId) continue;
+
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            stock: {
+              decrement: item.quantity,
+            },
+          },
+        });
+      }
+
+      return createdOrder;
     });
 
     return NextResponse.json({
@@ -265,7 +311,11 @@ export async function POST(req: NextRequest) {
     console.error("POST /api/orders failed:", error);
 
     return NextResponse.json(
-      { success: false, message: "Order creation failed." },
+      {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "Order creation failed.",
+      },
       { status: 500 }
     );
   }
@@ -312,7 +362,7 @@ export async function PUT(req: NextRequest) {
             : existing.paymentProvider,
         paymentSenderNumber:
           body.paymentDetails !== undefined
-            ? normalizeString(body.paymentDetails?.senderNumber) || null
+            ? sanitizePhone(normalizeString(body.paymentDetails?.senderNumber)) || null
             : existing.paymentSenderNumber,
         paymentTrxId:
           body.paymentDetails !== undefined

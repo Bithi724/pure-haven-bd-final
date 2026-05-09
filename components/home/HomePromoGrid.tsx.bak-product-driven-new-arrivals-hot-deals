@@ -1,0 +1,149 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+
+type HomePromo = {
+  id: string;
+  label: string;
+  title: string;
+  subtitle: string;
+  image: string;
+  href: string;
+  isActive: boolean;
+  sortOrder: number;
+};
+
+const fallbackWide: HomePromo = {
+  id: "fallback-wide",
+  label: "Explore Now",
+  title: "Top Picks",
+  subtitle: "",
+  image: "/images/categories/cosmetics.jpg",
+  href: "/shop",
+  isActive: true,
+  sortOrder: 1,
+};
+
+const fallbackSmall: HomePromo[] = [
+  {
+    id: "fallback-small-1",
+    label: "New Arrivals",
+    title: "New Arrivals",
+    subtitle: "",
+    image: "/images/categories/skincare.jpg",
+    href: "/shop",
+    isActive: true,
+    sortOrder: 1,
+  },
+  {
+    id: "fallback-small-2",
+    label: "Beat the Heat",
+    title: "Hot Deals",
+    subtitle: "",
+    image: "/images/categories/haircare.jpg",
+    href: "/shop",
+    isActive: true,
+    sortOrder: 2,
+  },
+];
+
+export default function HomePromoGrid() {
+  const [wideItems, setWideItems] = useState<HomePromo[]>([fallbackWide]);
+  const [smallItems, setSmallItems] = useState<HomePromo[]>(fallbackSmall);
+
+  useEffect(() => {
+    async function loadItems() {
+      try {
+        const [wideRes, smallRes] = await Promise.all([
+          fetch("/api/home-promos?kind=wide", { cache: "no-store" }),
+          fetch("/api/home-promos?kind=small", { cache: "no-store" }),
+        ]);
+
+        const wideData = await wideRes.json();
+        const smallData = await smallRes.json();
+
+        if (wideRes.ok && wideData?.success && Array.isArray(wideData.items)) {
+          const activeWide = wideData.items
+            .filter((item: HomePromo) => item.isActive)
+            .sort((a: HomePromo, b: HomePromo) => a.sortOrder - b.sortOrder);
+
+          if (activeWide.length > 0) setWideItems(activeWide);
+        }
+
+        if (smallRes.ok && smallData?.success && Array.isArray(smallData.items)) {
+          const activeSmall = smallData.items
+            .filter((item: HomePromo) => item.isActive)
+            .sort((a: HomePromo, b: HomePromo) => a.sortOrder - b.sortOrder);
+
+          if (activeSmall.length > 0) setSmallItems(activeSmall);
+        }
+      } catch {}
+    }
+
+    loadItems();
+  }, []);
+
+  const wide = useMemo(() => wideItems[0] || fallbackWide, [wideItems]);
+  const small = useMemo(() => smallItems.slice(0, 2), [smallItems]);
+
+  return (
+    <section className="bg-[#fcf8f6] px-3 py-4 md:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-4">
+        <Link
+          href={wide.href || "/shop"}
+          className="group relative block h-[170px] overflow-hidden rounded-[18px] bg-[#2e221d] shadow-sm sm:h-[230px] md:h-[280px]"
+        >
+          <img
+            src={wide.image}
+            alt={wide.title}
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          />
+
+          <div className="absolute inset-0 bg-black/15" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+
+          <div className="absolute inset-0 flex items-center justify-center text-center text-white">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/80 sm:text-xs">
+                {wide.label}
+              </p>
+              <h2 className="mt-2 text-4xl font-black uppercase tracking-tight sm:text-6xl md:text-7xl">
+                {wide.title}
+              </h2>
+            </div>
+          </div>
+        </Link>
+
+        <div className="grid grid-cols-2 gap-4">
+          {small.map((card) => (
+            <Link
+              key={card.id}
+              href={card.href || "/shop"}
+              className="group relative aspect-square overflow-hidden rounded-[18px] bg-[#2e221d] shadow-sm"
+            >
+              <img
+                src={card.image}
+                alt={card.title}
+                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              />
+
+              <div className="absolute inset-0 bg-black/10" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+
+              <div className="absolute inset-x-3 bottom-4 text-center text-white">
+                <h3 className="text-xl font-black leading-tight sm:text-3xl">
+                  {card.title}
+                </h3>
+
+                <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/85 sm:text-xs">
+                  {card.label || "Explore"}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}

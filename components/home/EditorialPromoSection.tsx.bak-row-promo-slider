@@ -1,0 +1,93 @@
+import Link from "next/link";
+
+const rightPromos = [
+  {
+    eyebrow: "Top Picks",
+    title: "Top Picks",
+    href: "/shop",
+    image: "/images/categories/cosmetics.jpg",
+  },
+  {
+    eyebrow: "Hot Deals",
+    title: "Hot Deals",
+    href: "/shop",
+    image: "/images/categories/skincare.jpg",
+  },
+  {
+    eyebrow: "Best Sellers",
+    title: "Best Sellers",
+    href: "/shop",
+    image: "/images/categories/haircare.jpg",
+  },
+];
+
+export default function EditorialPromoSection() {
+  return (
+    <section className="container-ph py-12">
+      <div className="grid gap-5 lg:grid-cols-[1.15fr_0.95fr]">
+        <Link
+          href="/shop"
+          className="group relative min-h-[520px] overflow-hidden rounded-[28px] border border-[#ead9d1] bg-[#2e221d] shadow-sm"
+        >
+          <img
+            src="/images/categories/perfume.jpg"
+            alt="New Arrivals"
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          />
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+
+          <div className="absolute bottom-8 left-8 max-w-md text-white">
+            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-white/80">
+              New Arrivals
+            </p>
+
+            <h2 className="mt-3 text-4xl font-semibold leading-tight">
+              Fresh beauty collection
+            </h2>
+
+            <p className="mt-3 text-sm leading-6 text-white/85">
+              Discover newly added beauty, skincare, haircare, and lifestyle essentials.
+            </p>
+
+            <span className="mt-6 inline-flex rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#2e221d] transition group-hover:bg-[#2e221d] group-hover:text-white">
+              Shop now
+            </span>
+          </div>
+        </Link>
+
+        <div className="grid gap-5">
+          {rightPromos.map((promo) => (
+            <Link
+              key={promo.title}
+              href={promo.href}
+              className="group relative min-h-[160px] overflow-hidden rounded-[24px] border border-[#ead9d1] bg-[#2e221d] shadow-sm"
+            >
+              <img
+                src={promo.image}
+                alt={promo.title}
+                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              />
+
+              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/25 to-transparent" />
+
+              <div className="absolute left-6 top-1/2 max-w-xs -translate-y-1/2 text-white">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/80">
+                  {promo.eyebrow}
+                </p>
+
+                <h3 className="mt-2 text-2xl font-semibold">
+                  {promo.title}
+                </h3>
+
+                <span className="mt-3 inline-flex text-sm font-semibold text-white/90">
+                  Shop now →
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}

@@ -1,0 +1,255 @@
+﻿"use client";
+
+import { useEffect, useState } from "react";
+
+type Subcategory = {
+  id: number | string;
+  name: string;
+  slug: string;
+};
+
+type Category = {
+  id: number | string;
+  name: string;
+  slug: string;
+  subcategories?: Subcategory[];
+};
+
+export default function Navbar() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchText, setSearchText] = useState("");
+
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        const res = await fetch("/api/categories", { cache: "no-store" });
+        const data = await res.json();
+
+        if (res.ok && data?.success && Array.isArray(data.categories)) {
+          setCategories(data.categories);
+        }
+      } catch {
+        setCategories([]);
+      }
+    }
+
+    loadCategories();
+  }, []);
+
+  function closeMenu() {
+    setMenuOpen(false);
+  }
+
+  function submitSearch(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    const q = searchText.trim();
+    if (q) {
+      window.location.href = `/shop?q=${encodeURIComponent(q)}`;
+    } else {
+      window.location.href = "/shop";
+    }
+  }
+
+  return (
+    <>
+      <header className="sticky top-0 z-[999] border-b border-[#ead9d1] bg-[#fffaf7]">
+        <div className="container-ph">
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4 py-4">
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              className="grid h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-3xl text-[#2e221d]"
+              aria-label="Open menu"
+            >
+              ☰
+            </button>
+
+            <a href="/" className="block text-center">
+              <div className="text-3xl font-semibold tracking-[0.35em] text-[#2e221d]">
+                PURE
+              </div>
+              <div className="mt-1 text-xs tracking-[0.45em] text-[#7a5244]">
+                HAVEN BD
+              </div>
+            </a>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSearchOpen(true)}
+                className="grid h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-2xl"
+                aria-label="Search"
+              >
+                🔍
+              </button>
+
+              <a
+                href="/wishlist"
+                className="grid h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-2xl"
+                aria-label="Wishlist"
+              >
+                ♡
+              </a>
+
+              <a
+                href="/cart"
+                className="grid h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-2xl"
+                aria-label="Cart"
+              >
+                🛒
+              </a>
+
+              <a
+                href="/login"
+                className="grid h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-2xl"
+                aria-label="Account"
+              >
+                ♙
+              </a>
+            </div>
+          </div>
+
+          <nav className="hidden items-center justify-center gap-7 border-t border-[#ead9d1] py-4 text-sm text-[#2e221d] md:flex">
+            <a href="/shop">All Products</a>
+
+            {categories.map((category) => (
+              <div key={category.id} className="group relative">
+                <a
+                  href={`/shop?category=${encodeURIComponent(category.slug)}`}
+                  className="hover:text-[#7a5244]"
+                >
+                  {category.name} <span className="text-xs">⌄</span>
+                </a>
+
+                {category.subcategories && category.subcategories.length > 0 ? (
+                  <div className="invisible absolute left-0 top-full min-w-52 translate-y-2 rounded-2xl border border-[#ead9d1] bg-white p-3 opacity-0 shadow-lg transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
+                    {category.subcategories.map((sub) => (
+                      <a
+                        key={sub.id}
+                        href={`/shop?category=${encodeURIComponent(category.slug)}&subcategory=${encodeURIComponent(sub.slug)}`}
+                        className="block rounded-xl px-3 py-2 text-sm hover:bg-[#f8f3ef]"
+                      >
+                        {sub.name}
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+
+            <a href="/track-order">Track Order</a>
+          </nav>
+        </div>
+      </header>
+
+      {menuOpen ? (
+        <div className="fixed inset-0 z-[99999] bg-black/40" onClick={closeMenu}>
+          <aside
+            className="h-full w-[86%] max-w-sm overflow-y-auto bg-[#2e221d] p-6 text-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-8 flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-semibold tracking-[0.35em]">PURE</div>
+                <div className="mt-1 text-xs tracking-[0.4em] text-white/65">
+                  HAVEN BD
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={closeMenu}
+                className="grid h-10 w-10 place-items-center rounded-full border border-white/20 text-3xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="grid gap-4 text-lg">
+              <a href="/" onClick={closeMenu}>Home</a>
+              <a href="/shop" onClick={closeMenu}>All Products</a>
+              <a href="/track-order" onClick={closeMenu}>Track Order</a>
+              <a href="/wishlist" onClick={closeMenu}>Wishlist</a>
+              <a href="/cart" onClick={closeMenu}>Cart</a>
+              <a href="/login" onClick={closeMenu}>Account</a>
+            </div>
+
+            <div className="mt-10">
+              <p className="mb-5 text-sm font-semibold uppercase tracking-[0.35em] text-white/60">
+                Categories
+              </p>
+
+              <div className="grid gap-5">
+                {categories.map((category) => (
+                  <div key={category.id} className="border-b border-white/10 pb-4">
+                    <a
+                      href={`/shop?category=${encodeURIComponent(category.slug)}`}
+                      onClick={closeMenu}
+                      className="block text-lg font-semibold"
+                    >
+                      {category.name}
+                    </a>
+
+                    {category.subcategories && category.subcategories.length > 0 ? (
+                      <div className="mt-3 grid gap-2 pl-3 text-sm text-white/75">
+                        {category.subcategories.map((sub) => (
+                          <a
+                            key={sub.id}
+                            href={`/shop?category=${encodeURIComponent(category.slug)}&subcategory=${encodeURIComponent(sub.slug)}`}
+                            onClick={closeMenu}
+                          >
+                            {sub.name}
+                          </a>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      {searchOpen ? (
+        <div className="fixed inset-0 z-[99999] bg-black/45 px-4 py-8 backdrop-blur-sm">
+          <div className="mx-auto mt-20 max-w-xl rounded-[28px] bg-white p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-2xl font-semibold text-[#2e221d]">
+                Search Products
+              </h2>
+
+              <button
+                type="button"
+                onClick={() => setSearchOpen(false)}
+                className="grid h-10 w-10 place-items-center rounded-full border border-[#ead9d1] text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={submitSearch} className="flex gap-3">
+              <input
+                autoFocus
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="Search product..."
+                className="min-w-0 flex-1 rounded-full border border-[#ead9d1] px-5 py-3 text-base outline-none"
+              />
+
+              <button
+                type="submit"
+                className="rounded-full bg-[#2e221d] px-6 py-3 text-sm font-semibold text-white"
+              >
+                Search
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}

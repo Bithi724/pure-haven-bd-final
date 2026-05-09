@@ -1,0 +1,79 @@
+import Link from "next/link";
+
+const promos = [
+  {
+    label: "New Arrivals",
+    title: "Fresh arrivals for your routine",
+    subtitle: "Explore newly added skincare, cosmetics, haircare, and lifestyle essentials.",
+    href: "/shop",
+    image: "/images/categories/cosmetics.jpg",
+  },
+  {
+    label: "Top Picks",
+    title: "Picked for Pure Haven customers",
+    subtitle: "Browse selected products that fit daily beauty and self-care needs.",
+    href: "/shop",
+    image: "/images/categories/skincare.jpg",
+  },
+];
+
+export default function EditorialPromoSection() {
+  return (
+    <section className="container-ph py-12">
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#8b5f4f]">
+            Explore
+          </p>
+          <h2 className="mt-2 text-3xl font-semibold text-[#2e221d]">
+            Featured Collections
+          </h2>
+        </div>
+
+        <Link
+          href="/shop"
+          className="hidden text-sm font-bold uppercase tracking-[0.22em] text-[#2e221d] hover:text-[#8b5f4f] md:inline-flex"
+        >
+          View all
+        </Link>
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-2">
+        {promos.map((promo) => (
+          <Link
+            key={promo.title}
+            href={promo.href}
+            className="group grid min-h-[240px] overflow-hidden rounded-[28px] border border-[#ead9d1] bg-[#fffaf7] shadow-sm transition hover:-translate-y-1 hover:shadow-md md:grid-cols-[1.05fr_0.95fr]"
+          >
+            <div className="flex flex-col justify-center p-7">
+              <span className="w-fit rounded-full bg-[#f3e5dd] px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-[#7a5244]">
+                {promo.label}
+              </span>
+
+              <h3 className="mt-5 text-2xl font-semibold leading-tight text-[#2e221d] md:text-3xl">
+                {promo.title}
+              </h3>
+
+              <p className="mt-3 max-w-sm text-sm leading-6 text-neutral-600">
+                {promo.subtitle}
+              </p>
+
+              <span className="mt-6 inline-flex w-fit rounded-full bg-[#2e221d] px-5 py-2.5 text-sm font-semibold text-white transition group-hover:bg-[#7a5244]">
+                Shop now
+              </span>
+            </div>
+
+            <div className="relative min-h-[190px] overflow-hidden bg-[#f3e5dd]">
+              <img
+                src={promo.image}
+                alt={promo.title}
+                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#fffaf7]/30 to-transparent" />
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}

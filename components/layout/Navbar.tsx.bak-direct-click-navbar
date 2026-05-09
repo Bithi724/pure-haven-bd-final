@@ -1,0 +1,164 @@
+﻿"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+type Category = {
+  id: number | string;
+  name: string;
+  slug: string;
+};
+
+export default function Navbar() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchText, setSearchText] = useState("");
+
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        const res = await fetch("/api/categories", { cache: "no-store" });
+        const data = await res.json();
+
+        if (res.ok && data?.success && Array.isArray(data.categories)) {
+          setCategories(data.categories);
+        }
+      } catch {
+        setCategories([]);
+      }
+    }
+
+    loadCategories();
+  }, []);
+
+  function submitSearch(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    const q = searchText.trim();
+    if (q) {
+      window.location.href = `/shop?q=${encodeURIComponent(q)}`;
+    } else {
+      window.location.href = "/shop";
+    }
+  }
+
+  return (
+    <>
+      <header className="sticky top-0 z-50 border-b border-[#ead9d1] bg-[#fffaf7]/95 backdrop-blur">
+        <div className="container-ph">
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4 py-4">
+            {/* MENU */}
+            <Link
+              href="/shop"
+              className="grid h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-2xl text-[#2e221d]"
+              aria-label="Menu"
+            >
+              ☰
+            </Link>
+
+            {/* LOGO */}
+            <Link href="/" className="text-center">
+              <div className="text-3xl font-semibold tracking-[0.35em] text-[#2e221d]">
+                PURE
+              </div>
+              <div className="mt-1 text-xs tracking-[0.45em] text-[#7a5244]">
+                HAVEN BD
+              </div>
+            </Link>
+
+            {/* ICONS */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSearchOpen(true)}
+                className="grid h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-2xl"
+                aria-label="Search"
+              >
+                🔍
+              </button>
+
+              <Link
+                href="/wishlist"
+                className="grid h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-2xl"
+                aria-label="Wishlist"
+              >
+                ♡
+              </Link>
+
+              <Link
+                href="/cart"
+                className="grid h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-2xl"
+                aria-label="Cart"
+              >
+                🛒
+              </Link>
+
+              <Link
+                href="/login"
+                className="hidden h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-2xl sm:grid"
+                aria-label="Account"
+              >
+                ♙
+              </Link>
+            </div>
+          </div>
+
+          {/* DESKTOP CATEGORY NAV */}
+          <nav className="hidden items-center justify-center gap-7 border-t border-[#ead9d1] py-4 text-sm text-[#2e221d] md:flex">
+            <Link href="/shop">All Products</Link>
+
+            {categories.map((category) => (
+              <Link
+                key={category.id}
+                href={`/shop?category=${encodeURIComponent(category.slug)}`}
+                className="hover:text-[#7a5244]"
+              >
+                {category.name} <span className="text-xs">⌄</span>
+              </Link>
+            ))}
+
+            <Link href="/track-order">Track Order</Link>
+          </nav>
+        </div>
+      </header>
+
+      {/* SEARCH MODAL */}
+      {searchOpen ? (
+        <div className="fixed inset-0 z-[99999] bg-black/45 px-4 py-8 backdrop-blur-sm">
+          <div className="mx-auto mt-20 max-w-xl rounded-[28px] bg-white p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-2xl font-semibold text-[#2e221d]">
+                Search Products
+              </h2>
+
+              <button
+                type="button"
+                onClick={() => setSearchOpen(false)}
+                className="grid h-10 w-10 place-items-center rounded-full border border-[#ead9d1] text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={submitSearch} className="flex gap-3">
+              <input
+                autoFocus
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="Search product..."
+                className="min-w-0 flex-1 rounded-full border border-[#ead9d1] px-5 py-3 text-base outline-none"
+              />
+
+              <button
+                type="submit"
+                className="rounded-full bg-[#2e221d] px-6 py-3 text-sm font-semibold text-white"
+              >
+                Search
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}

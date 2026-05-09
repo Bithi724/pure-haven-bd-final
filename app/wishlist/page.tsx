@@ -19,7 +19,7 @@ export default function WishlistPage() {
       <section className="container-ph section-gap">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-4xl font-semibold">Wishlist</h1>
+            <h1 className="text-4xl font-semibold text-[#2e221d]">Wishlist</h1>
             <p className="mt-2 text-neutral-600">
               Saved products you may want to buy later.
             </p>
@@ -38,13 +38,17 @@ export default function WishlistPage() {
 
         {wishlistItems.length === 0 ? (
           <div className="rounded-[24px] border border-[#ead9d1] bg-white p-10 text-center">
-            <h2 className="text-2xl font-semibold">Your wishlist is empty</h2>
+            <h2 className="text-2xl font-semibold text-[#2e221d]">
+              Your wishlist is empty
+            </h2>
             <p className="mt-3 text-neutral-600">
               Save products from the shop and they will appear here.
             </p>
+
             <Link
               href="/shop"
-              className="mt-6 inline-block rounded-full bg-[#2e221d] px-6 py-3 text-white hover:bg-[#7a5244]"
+              className="mt-6 inline-flex min-w-[150px] items-center justify-center rounded-full bg-[#2e221d] px-6 py-3 text-sm font-semibold !text-white hover:bg-[#7a5244]"
+              style={{ color: "#ffffff" }}
             >
               Go to Shop
             </Link>
@@ -71,11 +75,13 @@ export default function WishlistPage() {
                     <p className="text-sm text-[#7a5244]">{item.category}</p>
                     <Link
                       href={`/product/${item.id}`}
-                      className="mt-1 block text-lg font-semibold hover:text-[#7a5244]"
+                      className="mt-1 block text-lg font-semibold text-[#2e221d] hover:text-[#7a5244]"
                     >
                       {item.name}
                     </Link>
-                    <p className="mt-2 text-base font-medium">{item.price} BDT</p>
+                    <p className="mt-2 text-base font-medium text-[#2e221d]">
+                      {item.price} BDT
+                    </p>
                   </div>
                 </div>
 
@@ -83,7 +89,7 @@ export default function WishlistPage() {
                   <button
                     type="button"
                     onClick={() => addToCart(item)}
-                    className="rounded-full bg-[#2e221d] px-5 py-3 text-sm text-white hover:bg-[#7a5244]"
+                    className="rounded-full bg-[#2e221d] px-5 py-3 text-sm font-semibold text-white hover:bg-[#7a5244]"
                   >
                     Add to Cart
                   </button>

@@ -1,0 +1,70 @@
+import Link from "next/link";
+
+const cards = [
+  {
+    eyebrow: "Fresh just in",
+    title: "New Arrivals",
+    description:
+      "See the latest products added to Pure Haven BD for your daily beauty and self-care routine.",
+    href: "/shop",
+    accent: "from-[#f7efe9] via-[#fffaf7] to-[#efe4db]",
+  },
+  {
+    eyebrow: "Customer favorites",
+    title: "Top Picks",
+    description:
+      "Browse selected best-selling and highlighted products loved by Pure Haven BD customers.",
+    href: "/shop",
+    accent: "from-[#f3ebe6] via-[#fffaf8] to-[#eadfd6]",
+  },
+] as const;
+
+export default function HomeFeatureGrid() {
+  return (
+    <section className="mx-auto w-full max-w-[1440px] px-4 py-8 md:px-6 lg:px-8">
+      <div className="grid gap-6 md:grid-cols-2">
+        {cards.map((card) => (
+          <article
+            key={card.title}
+            className={`group relative overflow-hidden rounded-[30px] border border-[#eadfd8] bg-gradient-to-br ${card.accent} p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md md:p-8`}
+          >
+            <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-[#3d281f]/5 blur-2xl" />
+            <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[#3d281f]/5 blur-2xl" />
+
+            <div className="relative z-10 flex h-full flex-col justify-between gap-8">
+              <div className="space-y-4">
+                <span className="inline-flex rounded-full border border-[#e7d8cf] bg-white/70 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#8b5e49]">
+                  {card.eyebrow}
+                </span>
+
+                <div className="space-y-3">
+                  <h3 className="text-[30px] font-semibold leading-tight tracking-[-0.02em] text-[#2f2019] md:text-[36px]">
+                    {card.title}
+                  </h3>
+                  <p className="max-w-[30rem] text-[15px] leading-7 text-[#5f4639] md:text-base">
+                    {card.description}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-4">
+                <Link
+                  href={card.href}
+                  className="inline-flex h-12 items-center justify-center rounded-full bg-[#3b261d] px-6 text-sm font-semibold text-white transition hover:bg-[#2c1b14]"
+                >
+                  Explore
+                </Link>
+
+                <div className="hidden items-center gap-2 md:flex">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#3b261d]/25" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#3b261d]/40" />
+                  <span className="h-2.5 w-10 rounded-full bg-[#3b261d]" />
+                </div>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}

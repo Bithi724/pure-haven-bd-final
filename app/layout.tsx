@@ -1,5 +1,12 @@
+﻿import NavbarTopClickFix from "@/components/layout/NavbarTopClickFix";
+import MobileNavClickFix from "@/components/layout/MobileNavClickFix";
+import SafeMobileBottomNav from "@/components/layout/SafeMobileBottomNav";
+import FloatingCartSummary from "@/components/cart/FloatingCartSummary";
+import CartBurstProvider from "@/components/cart/CartBurstProvider";
 import type { Metadata } from "next";
 import "./globals.css";
+import RouteChromeGuard from "@/components/layout/RouteChromeGuard";
+import FloatingMessageButton from "@/components/layout/FloatingMessageButton";
 import { CartProvider } from "@/components/cart/CartContext";
 import { WishlistProvider } from "@/components/wishlist/WishlistContext";
 import { MobileUIProvider } from "@/components/mobile/MobileUIContext";
@@ -41,9 +48,23 @@ export default function RootLayout({
         <MobileUIProvider>
           <CartProvider>
             <WishlistProvider>{children}</WishlistProvider>
-          </CartProvider>
+            <CartBurstProvider />
+            <FloatingCartSummary />
+</CartProvider>
         </MobileUIProvider>
+              <FloatingMessageButton />
+              <RouteChromeGuard />
+        <SafeMobileBottomNav />
+              <MobileNavClickFix />
+              <NavbarTopClickFix />
       </body>
     </html>
   );
 }
+
+
+
+
+
+
+

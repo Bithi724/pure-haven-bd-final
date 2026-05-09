@@ -1,0 +1,420 @@
+﻿"use client";
+
+import { useEffect, useState } from "react";
+
+type Subcategory = {
+  id: number | string;
+  name: string;
+  slug: string;
+};
+
+type Category = {
+  id: number | string;
+  name: string;
+  slug: string;
+  subcategories?: Subcategory[];
+};
+
+type SearchProduct = {
+  id: number;
+  name: string;
+  image?: string;
+  category?: string;
+  price?: number;
+};
+
+function IconSearch() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="11" cy="11" r="7" />
+      <path d="M20 20L16.5 16.5" />
+    </svg>
+  );
+}
+
+function IconHeart() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M20.8 4.6c-1.8-1.7-4.6-1.6-6.3.2L12 7.4 9.5 4.8C7.8 3 5 2.9 3.2 4.6c-1.9 1.8-2 4.8-.2 6.7l9 9 9-9c1.8-1.9 1.7-4.9-.2-6.7Z" />
+    </svg>
+  );
+}
+
+function IconCart() {
+  return (
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M6 6h15l-2 8H8L6 6Z" />
+      <path d="M6 6 5 3H2" />
+      <circle cx="9" cy="20" r="1.5" />
+      <circle cx="18" cy="20" r="1.5" />
+    </svg>
+  );
+}
+
+function IconUser() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c1.7-4 4.5-6 8-6s6.3 2 8 6" />
+    </svg>
+  );
+}
+
+export default function Navbar() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [searchProducts, setSearchProducts] = useState<SearchProduct[]>([]);
+  const [searchProducts, setSearchProducts] = useState<SearchProduct[]>([]);
+  const [openCategory, setOpenCategory] = useState("");
+
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        const res = await fetch("/api/categories", { cache: "no-store" });
+        const data = await res.json();
+
+        if (res.ok && data?.success && Array.isArray(data.categories)) {
+          setCategories(
+            data.categories.map((item: any) => ({
+              id: item.id,
+              name: item.name,
+              slug: item.slug,
+              subcategories: item.subcategories || item.subCategories || [],
+            }))
+          );
+        }
+      } catch {
+        setCategories([]);
+      }
+    }
+
+    loadCategories();
+  }, []);
+
+  useEffect(() => {
+    async function loadProductsForSearch() {
+      try {
+        const res = await fetch("/api/products", { cache: "no-store" });
+        const data = await res.json();
+
+        const products = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.products)
+            ? data.products
+            : [];
+
+        setSearchProducts(products);
+      } catch {
+        setSearchProducts([]);
+      }
+    }
+
+    loadProductsForSearch();
+  }, []);
+
+  const filteredSearchProducts = searchProducts
+    .filter((product) => {
+      const q = searchText.trim().toLowerCase();
+      if (!q) return false;
+
+      return (
+        String(product.name || "").toLowerCase().includes(q) ||
+        String(product.category || "").toLowerCase().includes(q)
+      );
+    })
+    .slice(0, 6);
+
+  function closeMenu() {
+    setMenuOpen(false);
+    setOpenCategory("");
+  }
+
+  function submitSearch(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+  }
+
+  return (
+    <>
+      <header className="sticky top-0 z-[999] border-b border-[#ead9d1] bg-[#fffaf7]">
+        <div className="container-ph">
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4 py-4">
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              className="grid h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-3xl text-[#2e221d]"
+              aria-label="Open menu"
+            >
+              ☰
+            </button>
+
+            <a href="/" className="block text-center">
+              <div className="text-3xl font-semibold tracking-[0.35em] text-[#2e221d]">
+                PURE
+              </div>
+              <div className="mt-1 text-xs tracking-[0.45em] text-[#7a5244]">
+                HAVEN BD
+              </div>
+            </a>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSearchOpen(true)}
+                className="grid h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-[#2e221d] transition hover:bg-[#f8f3ef]"
+                aria-label="Search products"
+              >
+                <IconSearch />
+              </button>
+
+              <a
+                href="/wishlist"
+                className="grid h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-[#2e221d] transition hover:bg-[#f8f3ef]"
+                aria-label="Wishlist"
+              >
+                <IconHeart />
+              </a>
+
+              <a
+                href="/cart"
+                className="grid h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-[#2e221d] transition hover:bg-[#f8f3ef]"
+                aria-label="Cart"
+              >
+                <IconCart />
+              </a>
+
+              <a
+                href="/login"
+                className="grid h-12 w-12 place-items-center border border-[#ead9d1] bg-white text-[#2e221d] transition hover:bg-[#f8f3ef]"
+                aria-label="Account"
+              >
+                <IconUser />
+              </a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {menuOpen ? (
+        <div className="fixed inset-0 z-[99999] bg-black/35" onClick={closeMenu}>
+          <aside
+            className="h-full w-[88%] max-w-sm overflow-y-auto bg-white p-4 text-[#2e221d] shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button type="button" onClick={closeMenu} className="mb-4 text-3xl">
+              ×
+            </button>
+
+            <a href="/login" onClick={closeMenu} className="mb-7 flex items-center gap-5 rounded-2xl bg-orange-500 p-5 text-white">
+              <div className="grid h-20 w-20 place-items-center rounded-full bg-blue-100 text-5xl">👤</div>
+              <div>
+                <div className="text-2xl font-semibold leading-tight">Hello<br />there!</div>
+                <div className="mt-1 text-base">Signin</div>
+              </div>
+            </a>
+
+            <div className="rounded-xl bg-[#f3f3f3] p-4">
+              <a href="/shop" onClick={closeMenu} className="block border-b border-neutral-300 py-3">
+                All Products
+              </a>
+
+              {categories.map((category) => {
+                const hasSub = (category.subcategories || []).length > 0;
+                const active = openCategory === category.slug;
+
+                return (
+                  <div key={category.id} className="border-b border-neutral-300">
+                    <div className="flex items-center justify-between">
+                      <a
+                        href={`/shop?category=${encodeURIComponent(category.slug)}`}
+                        onClick={(e) => {
+                          if (hasSub) {
+                            e.preventDefault();
+                            setOpenCategory(active ? "" : category.slug);
+                          } else {
+                            closeMenu();
+                          }
+                        }}
+                        className="flex-1 py-3"
+                      >
+                        {category.name}
+                      </a>
+
+                      {hasSub ? (
+                        <button
+                          type="button"
+                          onClick={() => setOpenCategory(active ? "" : category.slug)}
+                          className="px-3 py-3 text-2xl text-neutral-500"
+                        >
+                          ›
+                        </button>
+                      ) : null}
+                    </div>
+
+                    {hasSub && active ? (
+                      <div className="grid gap-2 pb-3 pl-4 text-sm text-neutral-600">
+                        {category.subcategories?.map((sub) => (
+                          <a
+                            key={sub.id}
+                            href={`/shop?category=${encodeURIComponent(category.slug)}&subcategory=${encodeURIComponent(sub.slug)}`}
+                            onClick={closeMenu}
+                          >
+                            {sub.name}
+                          </a>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-6">
+              <h3 className="text-xl font-semibold text-neutral-600">Quick Links</h3>
+              <div className="mt-3 h-[3px] w-10 bg-orange-500" />
+
+              <div className="mt-4 grid gap-4 rounded-xl bg-[#f3f3f3] p-4 text-lg">
+                <a href="/shop" onClick={closeMenu}>🛍️ Shop</a>
+                <a href="/wishlist" onClick={closeMenu}>♡ Wishlists</a>
+                <a href="/track-order" onClick={closeMenu}>📦 Track Order</a>
+                <a href="/cart" onClick={closeMenu}>🛒 Cart</a>
+                <a href="/login" onClick={closeMenu}>👤 Account</a>
+              </div>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      {searchOpen ? (
+        <div className="fixed inset-0 z-[99999] bg-black/45 px-4 py-8 backdrop-blur-sm">
+          <div className="mx-auto mt-20 max-w-xl rounded-[28px] bg-white p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-2xl font-semibold text-[#2e221d]">Search Products</h2>
+
+              <button
+                type="button"
+                onClick={() => setSearchOpen(false)}
+                className="grid h-10 w-10 place-items-center rounded-full border border-[#ead9d1] text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={submitSearch} className="flex gap-3">
+              <input
+                autoFocus
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="Search product..."
+                className="min-w-0 flex-1 rounded-full border border-[#ead9d1] px-5 py-3 text-base outline-none"
+              />
+
+              <button type="submit" className="rounded-full bg-[#2e221d] px-6 py-3 text-sm font-semibold text-white">
+                Search
+              </button>
+            </form>
+
+            <div className="mt-5 max-h-[360px] overflow-y-auto">
+              {searchText.trim() && filteredSearchProducts.length === 0 ? (
+                <p className="rounded-2xl bg-[#fffaf7] p-4 text-sm text-neutral-600">
+                  No product found.
+                </p>
+              ) : null}
+
+              <div className="grid gap-3">
+                {filteredSearchProducts.map((product) => (
+                  <a
+                    key={product.id}
+                    href={`/product/${product.id}`}
+                    className="flex items-center gap-4 rounded-2xl border border-[#ead9d1] bg-[#fffaf7] p-3 hover:bg-[#f8f3ef]"
+                  >
+                    <img
+                      src={product.image || "/images/categories/cosmetics.jpg"}
+                      alt={product.name}
+                      className="h-16 w-16 rounded-xl object-cover"
+                    />
+
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-semibold text-[#2e221d]">
+                        {product.name}
+                      </div>
+                      <div className="text-sm text-neutral-500">
+                        {product.category || "Product"}
+                      </div>
+                    </div>
+
+                    {product.price ? (
+                      <div className="font-semibold text-[#2e221d]">
+                        ৳{Number(product.price).toLocaleString()}
+                      </div>
+                    ) : null}
+                  </a>
+                ))}
+              </div>
+
+              {searchText.trim() ? (
+                <a
+                  href={`/shop?q=${encodeURIComponent(searchText.trim())}`}
+                  className="mt-4 inline-flex rounded-full border border-[#ead9d1] px-5 py-2 text-sm font-semibold text-[#2e221d]"
+                >
+                  View all results
+                </a>
+              ) : null}
+            </div>
+
+            <div className="mt-5 max-h-[360px] overflow-y-auto">
+              {searchText.trim() && filteredSearchProducts.length === 0 ? (
+                <p className="rounded-2xl bg-[#fffaf7] p-4 text-sm text-neutral-600">
+                  No product found.
+                </p>
+              ) : null}
+
+              <div className="grid gap-3">
+                {filteredSearchProducts.map((product) => (
+                  <a
+                    key={product.id}
+                    href={`/product/${product.id}`}
+                    className="flex items-center gap-4 rounded-2xl border border-[#ead9d1] bg-[#fffaf7] p-3 hover:bg-[#f8f3ef]"
+                  >
+                    <img
+                      src={product.image || "/images/categories/cosmetics.jpg"}
+                      alt={product.name}
+                      className="h-16 w-16 rounded-xl object-cover"
+                    />
+
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-semibold text-[#2e221d]">
+                        {product.name}
+                      </div>
+                      <div className="text-sm text-neutral-500">
+                        {product.category || "Product"}
+                      </div>
+                    </div>
+
+                    {product.price ? (
+                      <div className="font-semibold text-[#2e221d]">
+                        ৳{Number(product.price).toLocaleString()}
+                      </div>
+                    ) : null}
+                  </a>
+                ))}
+              </div>
+
+              {searchText.trim() ? (
+                <a
+                  href={`/shop?q=${encodeURIComponent(searchText.trim())}`}
+                  className="mt-4 inline-flex rounded-full border border-[#ead9d1] px-5 py-2 text-sm font-semibold text-[#2e221d]"
+                >
+                  View all results
+                </a>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+

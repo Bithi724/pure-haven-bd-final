@@ -1,0 +1,79 @@
+[
+  {
+    "id": "slide-1",
+    "kind": "slider",
+    "label": "New Arrivals",
+    "title": "Fresh Beauty Collection",
+    "subtitle": "Explore cosmetics, skincare, haircare, and daily essentials.",
+    "image": "/images/categories/cosmetics.jpg",
+    "href": "/shop",
+    "isActive": true,
+    "sortOrder": 1
+  },
+  {
+    "id": "slide-2",
+    "kind": "slider",
+    "label": "Skincare",
+    "title": "Glow Essentials",
+    "subtitle": "Hydrating and nourishing picks for your daily routine.",
+    "image": "/images/categories/skincare.jpg",
+    "href": "/shop?category=skincare",
+    "isActive": true,
+    "sortOrder": 2
+  },
+  {
+    "id": "slide-3",
+    "kind": "slider",
+    "label": "Top Picks",
+    "title": "Customer Favorites",
+    "subtitle": "Selected products loved by Pure Haven BD customers.",
+    "image": "/images/categories/perfume.jpg",
+    "href": "/shop",
+    "isActive": true,
+    "sortOrder": 3
+  },
+  {
+    "id": "wide-1",
+    "kind": "wide",
+    "label": "Explore Now",
+    "title": "Top Picks",
+    "subtitle": "",
+    "image": "/images/categories/cosmetics.jpg",
+    "href": "/shop",
+    "isActive": true,
+    "sortOrder": 1
+  },
+  {
+    "id": "small-1",
+    "kind": "small",
+    "label": "New Arrivals",
+    "title": "New Arrivals",
+    "subtitle": "",
+    "image": "/images/categories/skincare.jpg",
+    "href": "/shop",
+    "isActive": true,
+    "sortOrder": 1
+  },
+  {
+    "id": "small-2",
+    "kind": "small",
+    "label": "Beat the Heat",
+    "title": "Hot Deals",
+    "subtitle": "",
+    "image": "/images/categories/haircare.jpg",
+    "href": "/shop",
+    "isActive": true,
+    "sortOrder": 2
+  },
+  {
+    "id": "promo-1777302824898",
+    "kind": "small",
+    "label": "Hot Deals",
+    "title": "Hot Deals",
+    "subtitle": "jhjjh",
+    "image": "/uploads/products/screenshot-2026-04-04-203050-1777302824795-r1174cdv.png",
+    "href": "/shop",
+    "isActive": true,
+    "sortOrder": 2
+  }
+]

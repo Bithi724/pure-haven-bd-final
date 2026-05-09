@@ -1,0 +1,56 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+const links = [
+  { href: "/admin", label: "Dashboard" },
+  { href: "/admin/products", label: "Products" },
+  { href: "/admin/products/add", label: "Add Product" },
+  { href: "/admin/categories", label: "Categories" },
+  { href: "/admin/orders", label: "Orders" },
+  { href: "/admin/home-promos", label: "Home Slider" },
+  { href: "/admin/footer", label: "Footer" },
+  { href: "/admin/site-settings", label: "Site Settings" },
+  { href: "/admin/settings", label: "Login Settings" },
+  { href: "/admin/messages", label: "Messages" },
+];
+
+export default function AdminNav() {
+  const router = useRouter();
+
+  function handleLogout() {
+    localStorage.removeItem("pure_haven_admin");
+    localStorage.removeItem("pure_haven_admin_logged_in");
+    localStorage.removeItem("adminLoggedIn");
+    localStorage.removeItem("isAdminLoggedIn");
+    localStorage.removeItem("pure_haven_admin_email");
+
+    router.push("/login");
+    router.refresh();
+  }
+
+  return (
+    <nav className="rounded-[28px] border border-[#ead9d1] bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-center gap-3">
+        {links.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="rounded-full border border-[#ead9d1] px-4 py-2 text-sm font-semibold text-[#2e221d] hover:bg-[#f8f3ef]"
+          >
+            {link.label}
+          </Link>
+        ))}
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="rounded-full border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
+        >
+          Logout
+        </button>
+      </div>
+    </nav>
+  );
+}

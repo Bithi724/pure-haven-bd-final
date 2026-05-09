@@ -1,0 +1,61 @@
+import TopBar from "@/components/layout/TopBar";
+import Navbar from "@/components/layout/Navbar";
+import HomeHeroSlider from "@/components/home/HomeHeroSlider";
+import HomePromoGrid from "@/components/home/HomePromoGrid";
+import CategorySection from "@/components/home/CategorySection";
+import ProductSection from "@/components/home/ProductSection";
+import DealsBanner from "@/components/home/DealsBanner";
+import BrandsSection from "@/components/home/BrandsSection";
+import TrustSection from "@/components/home/TrustSection";
+import Footer from "@/components/layout/Footer";
+import { getProducts } from "@/lib/getProducts";
+
+export default async function HomePage() {
+  const allProducts = await getProducts();
+
+  const newestProducts = [...allProducts]
+    .sort((a: any, b: any) => {
+      const aTime = new Date(a.createdAt ?? 0).getTime();
+      const bTime = new Date(b.createdAt ?? 0).getTime();
+      return bTime - aTime;
+    })
+    .slice(0, 8);
+
+  // STRICT RULE:
+  // Hot Deals section-e sudhu oi product ashbe,
+  // jar admin panel-e "Mark as Hot Deal" checked.
+  const hotDealProducts = allProducts
+    .filter((product: any) => product.isHotDeal === true)
+    .slice(0, 8);
+
+  return (
+    <>
+      <TopBar />
+      <Navbar />
+
+      <HomeHeroSlider />
+      <HomePromoGrid />
+
+      {hotDealProducts.length > 0 ? (
+        <ProductSection
+          title="Hot Deals"
+          subtitle="Special hot deal products selected by admin."
+          products={hotDealProducts}
+        />
+      ) : null}
+
+      <CategorySection />
+
+      <ProductSection
+        title="New Arrivals"
+        subtitle="Freshly added products from Pure Haven BD."
+        products={newestProducts}
+      />
+
+      <DealsBanner />
+      <BrandsSection />
+      <TrustSection />
+      <Footer />
+    </>
+  );
+}

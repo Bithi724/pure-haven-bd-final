@@ -1,0 +1,473 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import AdminNav from "@/components/admin/AdminNav";
+
+type Subcategory = { id: number; name: string; slug: string };
+type Category = { id: number; name: string; slug: string; subcategories: Subcategory[] };
+
+type ProductVariant = {
+  id?: number;
+  label: string;
+  price: number;
+  stock: number;
+  image?: string | null;
+};
+
+type VariantInput = {
+  label: string;
+  price: string;
+  stock: string;
+  image: string;
+  imageFile?: File | null;
+};
+
+type Product = {
+  id: number;
+  name: string;
+  price: number;
+  compareAtPrice?: number | null;
+  image: string;
+  category: string;
+  subcategory?: string | null;
+  description?: string | null;
+  stock?: number;
+  variants?: ProductVariant[];
+  isHotDeal?: boolean;
+  isUpcoming?: boolean;
+  badgeText?: string | null;
+  badgeTone?: string | null;
+};
+
+const emptyForm = {
+  name: "",
+  price: "",
+  compareAtPrice: "",
+  image: "",
+  categoryId: "",
+  categoryName: "",
+  subcategoryId: "",
+  subcategorySlug: "",
+  description: "",
+  stock: "",
+  isHotDeal: false,
+  isUpcoming: false,
+  badgeText: "",
+  badgeTone: "sale",
+};
+
+function safeStock(value: string) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
+}
+
+function slugify(value?: string | null) {
+  return (value || "").trim().toLowerCase().replace(/\s+/g, "-");
+}
+
+export default function AdminProductsPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [filter, setFilter] = useState("all");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState(emptyForm);
+  const [variants, setVariants] = useState<VariantInput[]>([]);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function loadProducts() {
+    const res = await fetch("/api/products", { cache: "no-store" });
+    const data = await res.json();
+    if (res.ok && data?.success && Array.isArray(data.products)) {
+      setProducts(data.products);
+    }
+  }
+
+  async function loadCategories() {
+    const res = await fetch("/api/categories", { cache: "no-store" });
+    const data = await res.json();
+    if (res.ok && data?.success && Array.isArray(data.categories)) {
+      setCategories(data.categories);
+    }
+  }
+
+  useEffect(() => {
+    loadProducts();
+    loadCategories();
+  }, []);
+
+  const selectedCategory = useMemo(
+    () => categories.find((c) => String(c.id) === form.categoryId),
+    [categories, form.categoryId]
+  );
+
+  const subcategories = selectedCategory?.subcategories || [];
+
+  const selectedSubcategory = useMemo(
+    () => subcategories.find((s) => String(s.id) === form.subcategoryId),
+    [subcategories, form.subcategoryId]
+  );
+
+  const filteredProducts = useMemo(() => {
+    if (filter === "hot") return products.filter((p) => p.isHotDeal);
+    if (filter === "upcoming") return products.filter((p) => p.isUpcoming);
+    if (filter === "discount") {
+      return products.filter((p) => typeof p.compareAtPrice === "number" && p.compareAtPrice > p.price);
+    }
+    if (filter === "badge") return products.filter((p) => p.badgeText);
+    return products;
+  }, [products, filter]);
+
+  function startEdit(product: Product) {
+    const matchedCategory =
+      categories.find(
+        (c) =>
+          c.name.toLowerCase() === product.category.toLowerCase() ||
+          c.slug === slugify(product.category)
+      ) || null;
+
+    const matchedSub =
+      matchedCategory?.subcategories.find(
+        (s) =>
+          s.slug === slugify(product.subcategory) ||
+          s.name.toLowerCase() === (product.subcategory || "").toLowerCase()
+      ) || null;
+
+    setEditingId(product.id);
+    setPreviewUrl(product.image || "");
+    setImageFile(null);
+    setMessage("");
+
+    setForm({
+      name: product.name || "",
+      price: String(product.price ?? ""),
+      compareAtPrice: product.compareAtPrice == null ? "" : String(product.compareAtPrice),
+      image: product.image || "",
+      categoryId: matchedCategory ? String(matchedCategory.id) : "",
+      categoryName: product.category || "",
+      subcategoryId: matchedSub ? String(matchedSub.id) : "",
+      subcategorySlug: product.subcategory || "",
+      description: product.description || "",
+      stock: String(product.stock ?? 0),
+      isHotDeal: Boolean(product.isHotDeal),
+      isUpcoming: Boolean(product.isUpcoming),
+      badgeText: product.badgeText || "",
+      badgeTone: product.badgeTone || "sale",
+    });
+
+    setVariants(
+      Array.isArray(product.variants)
+        ? product.variants.map((v) => ({
+            label: v.label || "",
+            price: String(v.price ?? ""),
+            stock: String(v.stock ?? 0),
+            image: v.image || "",
+            imageFile: null,
+          }))
+        : []
+    );
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function resetEdit() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setVariants([]);
+    setImageFile(null);
+    setPreviewUrl("");
+    setMessage("");
+  }
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
+    const target = e.target as HTMLInputElement;
+    const { name, value } = target;
+
+    if (target.type === "checkbox") {
+      setForm((prev) => ({ ...prev, [name]: target.checked }));
+      return;
+    }
+
+    if (name === "categoryId") {
+      const cat = categories.find((c) => String(c.id) === value);
+      const firstSub = cat?.subcategories?.[0];
+      setForm((prev) => ({
+        ...prev,
+        categoryId: value,
+        categoryName: cat?.name || prev.categoryName,
+        subcategoryId: firstSub ? String(firstSub.id) : "",
+        subcategorySlug: firstSub?.slug || "",
+      }));
+      return;
+    }
+
+    if (name === "subcategoryId") {
+      const sub = subcategories.find((s) => String(s.id) === value);
+      setForm((prev) => ({
+        ...prev,
+        subcategoryId: value,
+        subcategorySlug: sub?.slug || "",
+      }));
+      return;
+    }
+
+    setForm((prev) => ({ ...prev, [name]: value }));
+  }
+
+  function addVariant() {
+    setVariants((prev) => [...prev, { label: "", price: "", stock: "", image: "", imageFile: null }]);
+  }
+
+  function updateVariant(index: number, field: keyof VariantInput, value: string) {
+    setVariants((prev) => prev.map((v, i) => (i === index ? { ...v, [field]: value } : v)));
+  }
+
+  function updateVariantFile(index: number, file: File | null) {
+    setVariants((prev) => prev.map((v, i) => (i === index ? { ...v, imageFile: file } : v)));
+  }
+
+  function removeVariant(index: number) {
+    setVariants((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] || null;
+    setImageFile(file);
+    setPreviewUrl(file ? URL.createObjectURL(file) : form.image);
+  }
+
+  async function uploadImage(file: File) {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/upload", { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok || !data?.imagePath) throw new Error(data?.message || "Image upload failed.");
+    return data.imagePath as string;
+  }
+
+  async function handleUpdate(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!editingId) return;
+
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const imagePath = imageFile ? await uploadImage(imageFile) : form.image;
+
+      const cleanedVariants = await Promise.all(
+        variants
+          .filter((v) => v.label.trim() && Number(v.price) > 0)
+          .map(async (v) => {
+            const img = v.imageFile ? await uploadImage(v.imageFile) : v.image.trim();
+            return {
+              label: v.label.trim(),
+              price: Number(v.price),
+              stock: safeStock(v.stock),
+              image: img || null,
+            };
+          })
+      );
+
+      const payload = {
+        id: editingId,
+        name: form.name.trim(),
+        price: Number(form.price),
+        compareAtPrice: form.compareAtPrice ? Number(form.compareAtPrice) : null,
+        image: imagePath,
+        category: selectedCategory?.name || form.categoryName,
+        subcategory: selectedSubcategory?.slug || form.subcategorySlug,
+        description: form.description.trim(),
+        stock:
+          cleanedVariants.length > 0
+            ? cleanedVariants.reduce((sum, v) => sum + v.stock, 0)
+            : safeStock(form.stock),
+        isHotDeal: form.isHotDeal,
+        isUpcoming: form.isUpcoming,
+        badgeText: form.badgeText.trim() || null,
+        badgeTone: form.badgeTone,
+        variants: cleanedVariants,
+      };
+
+      const res = await fetch("/api/products", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) throw new Error(data?.message || "Failed to update product.");
+
+      await loadProducts();
+      resetEdit();
+      setMessage("Product updated successfully.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Update failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function deleteProduct(product: Product) {
+    if (!confirm(`Delete ${product.name}?`)) return;
+    await fetch(`/api/products?id=${product.id}`, { method: "DELETE" });
+    await loadProducts();
+    if (editingId === product.id) resetEdit();
+  }
+
+  return (
+    <main className="min-h-screen bg-[#fcf8f6] px-4 py-10">
+      <div className="mx-auto max-w-7xl space-y-8">
+        <AdminNav />
+
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold text-[#2e221d]">Admin Products</h1>
+            <p className="mt-1 text-sm text-neutral-600">Edit products, variants, badges, stock, and images.</p>
+          </div>
+
+          <div className="flex gap-3">
+            <select value={filter} onChange={(e) => setFilter(e.target.value)} className="rounded-2xl border border-[#ead9d1] bg-white px-4 py-3">
+              <option value="all">All products</option>
+              <option value="hot">Hot deals</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="discount">Discounted</option>
+              <option value="badge">Custom badge</option>
+            </select>
+
+            <Link href="/admin/products/add" className="rounded-full bg-[#2e221d] px-5 py-3 text-sm font-semibold text-white">
+              Add Product
+            </Link>
+          </div>
+        </div>
+
+        <section className="rounded-[28px] border border-[#ead9d1] bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-[#2e221d]">
+            {editingId ? `Editing Product #${editingId}` : "Select a product to edit"}
+          </h2>
+
+          {message ? <div className="mt-4 rounded-2xl border border-[#ead9d1] bg-[#fffaf7] p-4 text-sm">{message}</div> : null}
+
+          {editingId ? (
+            <form onSubmit={handleUpdate} className="mt-5 grid gap-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <input name="name" value={form.name} onChange={handleChange} required className="rounded-2xl border border-[#ead9d1] px-4 py-3" placeholder="Product name" />
+                <input name="stock" type="number" value={form.stock} onChange={handleChange} className="rounded-2xl border border-[#ead9d1] px-4 py-3" placeholder="Default stock" />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <input name="price" type="number" value={form.price} onChange={handleChange} required className="rounded-2xl border border-[#ead9d1] px-4 py-3" placeholder="Default price" />
+                <input name="compareAtPrice" type="number" value={form.compareAtPrice} onChange={handleChange} className="rounded-2xl border border-[#ead9d1] px-4 py-3" placeholder="Previous price" />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <select name="categoryId" value={form.categoryId} onChange={handleChange} className="rounded-2xl border border-[#ead9d1] px-4 py-3">
+                  <option value="">{form.categoryName || "Select category"}</option>
+                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+
+                <select name="subcategoryId" value={form.subcategoryId} onChange={handleChange} className="rounded-2xl border border-[#ead9d1] px-4 py-3">
+                  <option value="">{form.subcategorySlug || "No subcategory"}</option>
+                  {subcategories.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+
+              <div className="grid gap-3 rounded-2xl border border-[#ead9d1] bg-[#fffaf7] p-4 md:grid-cols-2">
+                <label className="flex items-center gap-3 bg-white p-4">
+                  <input name="isHotDeal" type="checkbox" checked={form.isHotDeal} onChange={handleChange} />
+                  Mark as Hot Deal
+                </label>
+                <label className="flex items-center gap-3 bg-white p-4">
+                  <input name="isUpcoming" type="checkbox" checked={form.isUpcoming} onChange={handleChange} />
+                  Mark as Upcoming Product
+                </label>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-[1fr_220px]">
+                <input name="badgeText" value={form.badgeText} onChange={handleChange} className="rounded-2xl border border-[#ead9d1] px-4 py-3" placeholder="Badge text" />
+                <select name="badgeTone" value={form.badgeTone} onChange={handleChange} className="rounded-2xl border border-[#ead9d1] px-4 py-3">
+                  <option value="sale">Sale Red</option>
+                  <option value="new">New Green</option>
+                  <option value="offer">Offer Orange</option>
+                  <option value="hot">Hot Brown</option>
+                  <option value="festival">Festival Purple</option>
+                </select>
+              </div>
+
+              <div className="rounded-2xl border border-[#ead9d1] bg-[#fffaf7] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-semibold">Product Variants</h3>
+                    <p className="text-xs text-neutral-500">Variant image optional. Empty image = main product image.</p>
+                  </div>
+                  <button type="button" onClick={addVariant} className="rounded-full bg-[#2e221d] px-4 py-2 text-sm font-semibold text-white">Add Variant</button>
+                </div>
+
+                <div className="mt-4 grid gap-3">
+                  {variants.map((v, index) => (
+                    <div key={index} className="grid gap-3 rounded-2xl bg-white p-3 md:grid-cols-[1fr_140px_120px_1fr_auto]">
+                      <input value={v.label} onChange={(e) => updateVariant(index, "label", e.target.value)} className="rounded-2xl border border-[#ead9d1] px-3 py-2" placeholder="100 ml / 500 gm" />
+                      <input value={v.price} onChange={(e) => updateVariant(index, "price", e.target.value)} type="number" className="rounded-2xl border border-[#ead9d1] px-3 py-2" placeholder="Price" />
+                      <input value={v.stock} onChange={(e) => updateVariant(index, "stock", e.target.value)} type="number" className="rounded-2xl border border-[#ead9d1] px-3 py-2" placeholder="Stock" />
+                      <div className="grid gap-2">
+                        <input value={v.image} onChange={(e) => updateVariant(index, "image", e.target.value)} className="rounded-2xl border border-[#ead9d1] px-3 py-2" placeholder="Variant image path optional" />
+                        <input type="file" accept="image/*" onChange={(e) => updateVariantFile(index, e.target.files?.[0] || null)} className="text-xs" />
+                      </div>
+                      <button type="button" onClick={() => removeVariant(index)} className="rounded-full border border-red-200 px-4 py-2 text-sm font-semibold text-red-600">Remove</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-5 md:grid-cols-[220px_1fr]">
+                {previewUrl ? <img src={previewUrl} alt="Preview" className="h-48 w-full rounded-2xl object-cover" /> : <div />}
+                <div>
+                  <input type="file" accept="image/*" onChange={handleImageChange} className="w-full rounded-2xl border border-[#ead9d1] px-4 py-3" />
+                  <textarea name="description" value={form.description} onChange={handleChange} rows={4} className="mt-4 w-full rounded-2xl border border-[#ead9d1] px-4 py-3" placeholder="Description" />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button type="submit" disabled={loading} className="rounded-full bg-[#2e221d] px-6 py-3 text-sm font-semibold text-white disabled:opacity-60">
+                  {loading ? "Updating..." : "Update Product"}
+                </button>
+                <button type="button" onClick={resetEdit} className="rounded-full border border-[#ead9d1] px-6 py-3 text-sm font-semibold">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : (
+            <p className="mt-3 text-sm text-neutral-600">Product card theke Edit click koro.</p>
+          )}
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {filteredProducts.map((product) => (
+            <div key={product.id} className="rounded-[24px] border border-[#ead9d1] bg-white p-4 shadow-sm">
+              <div className="grid grid-cols-[110px_1fr] gap-4">
+                <img src={product.image} alt={product.name} className="h-28 w-28 rounded-2xl object-cover" />
+                <div>
+                  <h3 className="font-semibold text-[#2e221d]">{product.name}</h3>
+                  <p className="mt-1 text-sm text-neutral-600">{product.category}{product.subcategory ? ` / ${product.subcategory}` : ""}</p>
+                  <p className="mt-2 font-semibold">৳{product.price}</p>
+                  {product.variants?.length ? (
+                    <p className="mt-2 text-xs text-[#7a5244]">
+                      {product.variants.length} variants: {product.variants.map((v) => v.image ? `${v.label} 🖼️` : v.label).join(", ")}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <button type="button" onClick={() => startEdit(product)} className="rounded-full bg-[#2e221d] px-4 py-2 text-sm font-semibold text-white">Edit</button>
+                <button type="button" onClick={() => deleteProduct(product)} className="rounded-full border border-red-200 px-4 py-2 text-sm font-semibold text-red-600">Delete</button>
+              </div>
+            </div>
+          ))}
+        </section>
+      </div>
+    </main>
+  );
+}

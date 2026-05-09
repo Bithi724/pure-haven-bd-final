@@ -1,0 +1,115 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Home, LayoutGrid, Search, ShoppingBag, User } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useCart } from "@/components/cart/CartContext";
+import { useMobileUI } from "@/components/mobile/MobileUIContext";
+
+function useAnimatedNumber(value: number) {
+  const [displayValue, setDisplayValue] = useState(value);
+
+  useEffect(() => {
+    if (displayValue === value) return;
+
+    const direction = value > displayValue ? 1 : -1;
+    const timer = window.setInterval(() => {
+      setDisplayValue((current) => {
+        if (current === value) {
+          window.clearInterval(timer);
+          return current;
+        }
+
+        const next = current + direction;
+
+        if (direction > 0) return Math.min(next, value);
+        return Math.max(next, value);
+      });
+    }, 90);
+
+    return () => window.clearInterval(timer);
+  }, [value, displayValue]);
+
+  return displayValue;
+}
+
+export default function MobileBottomNav() {
+  const pathname = usePathname();
+  const { cartCount } = useCart();
+  const animatedCartCount = useAnimatedNumber(cartCount);
+  const { toggleMenu, toggleSearch, closeAll } = useMobileUI();
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const syncAdminState = () => {
+      try {
+        setIsAdminLoggedIn(localStorage.getItem("ph_admin_logged_in") === "true");
+      } catch {
+        setIsAdminLoggedIn(false);
+      }
+    };
+
+    syncAdminState();
+    window.addEventListener("storage", syncAdminState);
+    window.addEventListener("focus", syncAdminState);
+    window.addEventListener("ph-admin-auth-changed", syncAdminState as EventListener);
+
+    return () => {
+      window.removeEventListener("storage", syncAdminState);
+      window.removeEventListener("focus", syncAdminState);
+      window.removeEventListener("ph-admin-auth-changed", syncAdminState as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    closeAll();
+  }, [pathname, closeAll]);
+
+  const itemClass =
+    "relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 py-2 text-white transition hover:bg-white/10";
+
+  const labelClass = "text-[10px] font-semibold leading-none";
+
+  return (
+    <nav className="fixed inset-x-0 bottom-0 z-[150] border-t border-[#ead9d1] bg-[#2e221d] shadow-[0_-8px_30px_rgba(0,0,0,0.18)] lg:hidden">
+      <div className="grid h-[64px] grid-cols-5">
+        <Link href="/" className={itemClass} aria-label="Home">
+          <Home className="h-5 w-5" />
+          <span className={labelClass}>HOME</span>
+        </Link>
+
+        <button type="button" onClick={toggleMenu} className={itemClass} aria-label="Menu">
+          <LayoutGrid className="h-5 w-5" />
+          <span className={labelClass}>MENU</span>
+        </button>
+
+        <Link href="/cart" className={itemClass} aria-label="Cart">
+          <span className="relative">
+            <ShoppingBag className="h-5 w-5" />
+            {cartCount > 0 ? (
+              <span className="absolute -right-2 -top-2 inline-flex min-w-[18px] items-center justify-center rounded-full bg-[#fffaf7] px-1 text-[10px] font-bold text-[#2e221d]">
+                {animatedCartCount}
+              </span>
+            ) : null}
+          </span>
+          <span className={labelClass}>CART</span>
+        </Link>
+
+        <button type="button" onClick={toggleSearch} className={itemClass} aria-label="Search">
+          <Search className="h-5 w-5" />
+          <span className={labelClass}>SEARCH</span>
+        </button>
+
+        <Link
+          href={isAdminLoggedIn ? "/admin" : "/login"}
+          className={itemClass}
+          aria-label="Account"
+        >
+          <User className="h-5 w-5" />
+          <span className={labelClass}>ACCOUNT</span>
+        </Link>
+      </div>
+    </nav>
+  );
+}

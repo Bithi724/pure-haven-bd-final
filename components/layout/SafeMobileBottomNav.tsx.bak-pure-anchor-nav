@@ -1,0 +1,47 @@
+﻿"use client";
+
+import { usePathname } from "next/navigation";
+
+const items = [
+  { label: "HOME", icon: "⌂", href: "/" },
+  { label: "MENU", icon: "▦", href: "/shop" },
+  { label: "CART", icon: "▣", href: "/cart" },
+  { label: "SEARCH", icon: "⌕", href: "/shop" },
+  { label: "ACCOUNT", icon: "♙", href: "/login" },
+];
+
+export default function SafeMobileBottomNav() {
+  const pathname = usePathname();
+
+  if (
+    pathname.startsWith("/admin") ||
+    pathname === "/login" ||
+    pathname === "/admin/login"
+  ) {
+    return null;
+  }
+
+  function goTo(href: string) {
+    window.location.href = href;
+  }
+
+  return (
+    <nav className="ph-safe-mobile-bottom-nav md:hidden">
+      {items.map((item) => (
+        <button
+          key={item.label}
+          type="button"
+          onClick={() => goTo(item.href)}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            goTo(item.href);
+          }}
+          className="ph-safe-mobile-bottom-nav-item"
+        >
+          <span className="ph-safe-mobile-bottom-nav-icon">{item.icon}</span>
+          <span className="ph-safe-mobile-bottom-nav-label">{item.label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+}

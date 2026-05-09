@@ -1,0 +1,102 @@
+"use client";
+
+import Link from "next/link";
+import { Heart, ShoppingCart } from "lucide-react";
+import { useCart } from "@/components/cart/CartContext";
+
+type ProductCardProps = {
+  id: number;
+  name: string;
+  price: number;
+  image: string;
+  category: string;
+  stock?: number;
+};
+
+export default function ProductCard({
+  id,
+  name,
+  price,
+  image,
+  category,
+  stock = 0,
+}: ProductCardProps) {
+  const { addToCart } = useCart();
+  const isOutOfStock = stock <= 0;
+
+  function handleAddToCart() {
+    if (isOutOfStock) return;
+
+    addToCart({
+      id,
+      name,
+      price,
+      image,
+      category,
+      stock,
+      quantity: 1,
+    });
+  }
+
+  return (
+    <div className="group rounded-[28px] border border-[#ead9d1] bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+      <div className="relative overflow-hidden rounded-[22px] bg-[#faf7f4]">
+        {isOutOfStock ? (
+          <span className="absolute left-3 top-3 z-10 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-600">
+            Out of Stock
+          </span>
+        ) : null}
+
+        <button
+          type="button"
+          className="absolute right-3 top-3 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm transition hover:bg-[#f8f3ef]"
+          aria-label="Add to wishlist"
+        >
+          <Heart className="h-5 w-5" />
+        </button>
+
+        <Link href={`/product/${id}`} prefetch={false}>
+          <div className="aspect-square w-full bg-white">
+            <img
+              src={image || "/uploads/placeholder-product.png"}
+              alt={name}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-contain p-1 transition duration-300 group-hover:scale-[1.03]"
+            />
+          </div>
+        </Link>
+      </div>
+
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <span className="rounded-full bg-[#f8f3ef] px-3 py-1 text-xs font-medium uppercase tracking-[0.12em] text-[#7a5244]">
+          {category}
+        </span>
+
+        <span className="text-xs text-neutral-600">Stock: {stock}</span>
+      </div>
+
+      <Link href={`/product/${id}`} prefetch={false}>
+        <h3 className="mt-4 line-clamp-2 min-h-[56px] text-lg font-semibold leading-7 text-[#2e221d] hover:text-[#7a5244]">
+          {name}
+        </h3>
+      </Link>
+
+      <p className="mt-3 text-2xl font-semibold text-[#2e221d]">৳{price}</p>
+
+      <button
+        type="button"
+        disabled={isOutOfStock}
+        onClick={handleAddToCart}
+        className={`mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition ${
+          isOutOfStock
+            ? "cursor-not-allowed bg-[#eadfd8] text-[#9b8479]"
+            : "bg-[#2e221d] text-white hover:bg-[#7a5244]"
+        }`}
+      >
+        <ShoppingCart className="h-5 w-5" />
+        {isOutOfStock ? "Out of Stock" : "Add to Cart"}
+      </button>
+    </div>
+  );
+}

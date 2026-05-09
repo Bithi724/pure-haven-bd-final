@@ -1,0 +1,48 @@
+﻿"use client";
+
+import { usePathname } from "next/navigation";
+
+const navItems = [
+  { href: "/", label: "HOME", icon: "⌂" },
+  { href: "/shop", label: "MENU", icon: "▦" },
+  { href: "/cart", label: "CART", icon: "▣" },
+  { href: "/shop", label: "SEARCH", icon: "⌕" },
+  { href: "/login", label: "ACCOUNT", icon: "♙" },
+];
+
+export default function MobileBottomNav() {
+  const pathname = usePathname();
+
+  const hide =
+    pathname.startsWith("/admin") ||
+    pathname === "/login" ||
+    pathname === "/admin/login";
+
+  if (hide) return null;
+
+  return (
+    <nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-[9999] border-t border-[#ead9d1] bg-white px-2 py-2 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] md:hidden">
+      <div className="grid grid-cols-5">
+        {navItems.map((item) => {
+          const active =
+            item.href === "/"
+              ? pathname === "/"
+              : pathname.startsWith(item.href);
+
+          return (
+            <a
+              key={item.label}
+              href={item.href}
+              className="flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-xl text-[#2e221d] active:bg-[#f8f3ef]"
+            >
+              <span className="text-3xl leading-none">{item.icon}</span>
+              <span className="text-[11px] font-semibold leading-none">
+                {item.label}
+              </span>
+            </a>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}

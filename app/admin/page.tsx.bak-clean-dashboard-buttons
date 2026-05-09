@@ -1,0 +1,200 @@
+﻿"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import AdminNav from "@/components/admin/AdminNav";
+
+type Product = {
+  id: number;
+  name?: string;
+  stock?: number;
+  isHotDeal?: boolean;
+};
+
+type Order = {
+  id: number | string;
+  customerName?: string;
+  name?: string;
+  phone?: string;
+  status?: string;
+  orderStatus?: string;
+  paymentStatus?: string;
+  total?: number;
+  grandTotal?: number;
+  totalAmount?: number;
+  createdAt?: string;
+};
+
+type Message = {
+  id: string;
+  name: string;
+  phone: string;
+  status: string;
+  createdAt: string;
+};
+
+export default function AdminDashboardPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        const [productRes, orderRes, messageRes] = await Promise.all([
+          fetch("/api/products", { cache: "no-store" }),
+          fetch("/api/orders", { cache: "no-store" }),
+          fetch("/api/customer-messages", { cache: "no-store" }),
+        ]);
+
+        const productData = await productRes.json().catch(() => null);
+        const orderData = await orderRes.json().catch(() => null);
+        const messageData = await messageRes.json().catch(() => null);
+
+        setProducts(
+          Array.isArray(productData)
+            ? productData
+            : Array.isArray(productData?.products)
+              ? productData.products
+              : []
+        );
+
+        setOrders(
+          Array.isArray(orderData)
+            ? orderData
+            : Array.isArray(orderData?.orders)
+              ? orderData.orders
+              : []
+        );
+
+        setMessages(
+          Array.isArray(messageData?.messages) ? messageData.messages : []
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDashboard();
+  }, []);
+
+  const stats = useMemo(() => {
+    const totalSales = orders.reduce((sum, order) => {
+      const amount =
+        Number(order.grandTotal ?? 0) ||
+        Number(order.totalAmount ?? 0) ||
+        Number(order.total ?? 0) ||
+        0;
+
+      const status = String(order.status || order.orderStatus || "").toLowerCase();
+      if (status.includes("cancel")) return sum;
+      return sum + amount;
+    }, 0);
+
+    return {
+      products: products.length,
+      orders: orders.length,
+      pendingOrders: orders.filter((o) =>
+        String(o.status || o.orderStatus || "").toLowerCase().includes("pending")
+      ).length,
+      messages: messages.filter((m) => m.status === "new").length,
+      lowStock: products.filter((p) => Number(p.stock ?? 0) <= 3).length,
+      hotDeals: products.filter((p) => p.isHotDeal).length,
+      totalSales,
+    };
+  }, [products, orders, messages]);
+
+  return (
+    <main className="min-h-screen bg-[#fcf8f6] px-4 py-10">
+      <div className="mx-auto max-w-7xl space-y-8">
+        <AdminNav />
+
+        <section className="rounded-[28px] border border-[#ead9d1] bg-white p-6 shadow-sm md:p-8">
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#7a5244]">
+            Admin Panel
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold text-[#2e221d] md:text-4xl">
+            Dashboard
+          </h1>
+          <p className="mt-2 text-sm text-neutral-600">
+            Store overview, products, orders, messages, and quick actions.
+          </p>
+        </section>
+
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label="Total Products" value={stats.products} />
+          <StatCard label="Total Orders" value={stats.orders} />
+          <StatCard label="Pending Orders" value={stats.pendingOrders} />
+          <StatCard label="New Messages" value={stats.messages} />
+          <StatCard label="Low Stock" value={stats.lowStock} />
+          <StatCard label="Hot Deals" value={stats.hotDeals} />
+          <StatCard label="Total Sales" value={`৳${stats.totalSales.toLocaleString()}`} />
+          <StatCard label="Status" value={loading ? "Loading" : "Ready"} />
+        </section>
+
+        <section className="grid gap-5 lg:grid-cols-2">
+          <div className="rounded-[28px] border border-[#ead9d1] bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-[#2e221d]">Quick Actions</h2>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <a
+                className="rounded-full border border-[#ead9d1] px-5 py-3 text-sm font-semibold text-[#2e221d] hover:bg-[#f8f3ef]"
+                href="/"
+              >
+                Go to Home Page
+              </a>
+              <a
+  className="rounded-full bg-[#2e221d] px-5 py-3 text-sm font-semibold text-white hover:bg-[#5e3d32]"
+  href="/admin/products/add"
+>
+  Add Product
+</a>
+              <a className="rounded-full border border-[#ead9d1] px-5 py-3 text-sm font-semibold text-[#2e221d]" href="/admin/orders">
+                View Orders
+              </a>
+              <a className="rounded-full border border-[#ead9d1] px-5 py-3 text-sm font-semibold text-[#2e221d]" href="/admin/messages">
+                Customer Messages
+              </a>
+              <a className="rounded-full border border-[#ead9d1] px-5 py-3 text-sm font-semibold text-[#2e221d]" href="/admin/home-promos">
+                Home Slider
+              </a>
+            </div>
+          </div>
+
+          <div className="rounded-[28px] border border-[#ead9d1] bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-[#2e221d]">Recent Orders</h2>
+            <div className="mt-5 grid gap-3">
+              {orders.slice(0, 5).map((order) => (
+                <div key={order.id} className="rounded-2xl border border-[#ead9d1] p-4 text-sm">
+                  <div className="font-semibold text-[#2e221d]">
+                    Order #{order.id}
+                  </div>
+                  <div className="text-neutral-600">
+                    {order.customerName || order.name || "Customer"} · {order.phone || "No phone"}
+                  </div>
+                </div>
+              ))}
+
+              {orders.length === 0 ? (
+                <p className="text-sm text-neutral-500">No orders yet.</p>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-[24px] border border-[#ead9d1] bg-white p-5 shadow-sm">
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#7a5244]">
+        {label}
+      </p>
+      <div className="mt-3 text-3xl font-semibold text-[#2e221d]">
+        {value}
+      </div>
+    </div>
+  );
+}
+

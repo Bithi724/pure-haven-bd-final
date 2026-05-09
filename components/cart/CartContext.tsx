@@ -8,7 +8,7 @@ import React, {
   useState,
 } from "react";
 
-type CartItem = {
+export type CartItem = {
   id: number;
   name: string;
   price: number;
@@ -18,7 +18,9 @@ type CartItem = {
   stock?: number;
 };
 
-type AddToCartItem = Omit<CartItem, "quantity">;
+export type AddToCartItem = Omit<CartItem, "quantity"> & {
+  quantity?: number;
+};
 
 type CartContextType = {
   cartItems: CartItem[];
@@ -34,6 +36,11 @@ type CartContextType = {
 const CartContext = createContext<CartContextType | null>(null);
 
 const CART_STORAGE_KEY = "pure-haven-cart";
+
+function safeQuantity(value?: number) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 1;
+  return Math.max(1, Math.floor(value));
+}
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -61,6 +68,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [cartItems, isLoaded]);
 
   const addToCart = (item: AddToCartItem) => {
+    const requestedQuantity = safeQuantity(item.quantity);
+
     setCartItems((prev) => {
       const existing = prev.find((p) => p.id === item.id);
 
@@ -69,19 +78,32 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           typeof item.stock === "number"
             ? item.stock
             : typeof existing.stock === "number"
-            ? existing.stock
-            : undefined;
+              ? existing.stock
+              : undefined;
 
-        if (typeof knownStock === "number" && existing.quantity >= knownStock) {
-          return prev;
+        const nextQuantity = existing.quantity + requestedQuantity;
+
+        if (typeof knownStock === "number") {
+          if (knownStock <= 0 || existing.quantity >= knownStock) {
+            return prev;
+          }
+
+          return prev.map((p) =>
+            p.id === item.id
+              ? {
+                  ...p,
+                  stock: knownStock,
+                  quantity: Math.min(nextQuantity, knownStock),
+                }
+              : p
+          );
         }
 
         return prev.map((p) =>
           p.id === item.id
             ? {
                 ...p,
-                stock: typeof knownStock === "number" ? knownStock : p.stock,
-                quantity: p.quantity + 1,
+                quantity: nextQuantity,
               }
             : p
         );
@@ -91,7 +113,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return prev;
       }
 
-      return [...prev, { ...item, quantity: 1 }];
+      const initialQuantity =
+        typeof item.stock === "number"
+          ? Math.min(requestedQuantity, item.stock)
+          : requestedQuantity;
+
+      const { quantity, ...cartItem } = item;
+
+      return [
+        ...prev,
+        {
+          ...cartItem,
+          quantity: initialQuantity,
+        },
+      ];
     });
   };
 

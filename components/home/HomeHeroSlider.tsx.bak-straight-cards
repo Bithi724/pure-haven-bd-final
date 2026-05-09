@@ -1,0 +1,140 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+type Slide = {
+  id: number;
+  image: string;
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  href: string;
+  buttonText: string;
+};
+
+const slides: Slide[] = [
+  {
+    id: 1,
+    image:
+      "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1600&q=80",
+    eyebrow: "NEW ARRIVALS",
+    title: "Fresh beauty collection",
+    subtitle: "Discover premium beauty, skincare, and lifestyle essentials.",
+    href: "/shop?category=cosmetics",
+    buttonText: "Shop Now",
+  },
+  {
+    id: 2,
+    image:
+      "https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=1600&q=80",
+    eyebrow: "SKINCARE",
+    title: "Glow essentials",
+    subtitle: "Hydrating and nourishing skincare picks for daily care.",
+    href: "/shop?category=skincare",
+    buttonText: "Explore",
+  },
+  {
+    id: 3,
+    image:
+      "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=1600&q=80",
+    eyebrow: "HAIRCARE",
+    title: "Daily care favorites",
+    subtitle: "Keep your hair fresh, smooth, and healthy.",
+    href: "/shop?category=haircare",
+    buttonText: "Browse",
+  },
+  {
+    id: 4,
+    image:
+      "https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&w=1600&q=80",
+    eyebrow: "PERFUME",
+    title: "Elegant fragrance picks",
+    subtitle: "Find signature scents for every moment.",
+    href: "/shop?category=perfume",
+    buttonText: "View More",
+  },
+];
+
+export default function HomeHeroSlider() {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % slides.length);
+    }, 4200);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return (
+    <section className="w-full border-b border-[#ead9d1] bg-[#fffaf7]">
+      <div className="relative mx-auto w-full max-w-[1600px] overflow-hidden">
+        <div className="relative h-[250px] sm:h-[360px] lg:h-[460px]">
+          <div
+            className="flex h-full transition-transform duration-[900ms] ease-in-out"
+            style={{
+              width: `${slides.length * 100}%`,
+              transform: `translateX(-${activeIndex * (100 / slides.length)}%)`,
+            }}
+          >
+            {slides.map((slide) => (
+              <div
+                key={slide.id}
+                className="relative h-full shrink-0"
+                style={{ width: `${100 / slides.length}%` }}
+              >
+                <img
+                  src={slide.image}
+                  alt={slide.title}
+                  className="h-full w-full object-cover"
+                />
+
+                <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/35 to-black/10" />
+
+                <div className="absolute inset-0 flex items-end">
+                  <div className="px-6 pb-10 text-white sm:px-10 sm:pb-12 lg:px-16 lg:pb-16">
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-white/85">
+                      {slide.eyebrow}
+                    </p>
+
+                    <h2 className="max-w-[720px] text-3xl font-semibold leading-tight sm:text-5xl">
+                      {slide.title}
+                    </h2>
+
+                    <p className="mt-3 max-w-[560px] text-sm text-white/90 sm:text-base">
+                      {slide.subtitle}
+                    </p>
+
+                    <Link
+                      href={slide.href}
+                      className="mt-6 inline-flex rounded-full bg-[#2e221d] px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-[#7a5244]"
+                    >
+                      {slide.buttonText}
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 gap-2">
+            {slides.map((slide, index) => (
+              <button
+                key={slide.id}
+                type="button"
+                onClick={() => setActiveIndex(index)}
+                aria-label={`Go to slide ${index + 1}`}
+                className={`h-2.5 rounded-full transition-all ${
+                  activeIndex === index
+                    ? "w-8 bg-white"
+                    : "w-2.5 bg-white/55 hover:bg-white/80"
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

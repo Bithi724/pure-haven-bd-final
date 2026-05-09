@@ -1,29 +1,80 @@
 import { prisma } from "@/lib/prisma";
 
+export type ProductVariant = {
+  id: number;
+  label: string;
+  price: number;
+  stock: number;
+  image?: string | null;
+};
+
 export type Product = {
   id: number;
   name: string;
   price: number;
+  compareAtPrice?: number | null;
   image: string;
   category: string;
-  subcategory?: string; // 🔥 IMPORTANT
+  subcategory?: string;
   description?: string;
   stock?: number;
+  variants?: ProductVariant[];
+  isHotDeal?: boolean;
+  isUpcoming?: boolean;
+  badgeText?: string | null;
+  badgeTone?: string;
 };
+
+function mapProduct(product: any): Product {
+  return {
+    id: product.id,
+    name: product.name,
+    price: Number(product.price),
+    compareAtPrice:
+      product.compareAtPrice == null ? null : Number(product.compareAtPrice),
+    image: product.image,
+    category: product.category,
+    subcategory: product.subcategory ?? undefined,
+    description: product.description ?? undefined,
+    stock: product.stock ?? 0,
+    variants: Array.isArray(product.variants)
+      ? product.variants.map((variant: any) => ({
+          id: variant.id,
+          label: variant.label,
+          price: Number(variant.price),
+          stock: variant.stock ?? 0,
+          image: variant.image ?? null,
+        }))
+      : [],
+    isHotDeal: product.isHotDeal ?? false,
+    isUpcoming: product.isUpcoming ?? false,
+    badgeText: product.badgeText ?? null,
+    badgeTone: product.badgeTone ?? "sale",
+  };
+}
 
 export async function getProducts(): Promise<Product[]> {
   const products = await prisma.product.findMany({
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ id: "desc" }],
+    include: {
+      variants: {
+        orderBy: { id: "asc" },
+      },
+    },
   });
 
-  return products.map((p) => ({
-    id: p.id,
-    name: p.name,
-    price: Number(p.price),
-    image: p.image,
-    category: p.category,
-    subcategory: p.subcategory ?? undefined, // 🔥 FIX
-    description: p.description ?? undefined,
-    stock: p.stock ?? 0,
-  }));
+  return products.map(mapProduct);
+}
+
+export async function getProductById(id: number): Promise<Product | null> {
+  const product = await prisma.product.findUnique({
+    where: { id },
+    include: {
+      variants: {
+        orderBy: { id: "asc" },
+      },
+    },
+  });
+
+  return product ? mapProduct(product) : null;
 }
